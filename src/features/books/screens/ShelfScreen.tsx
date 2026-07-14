@@ -10,19 +10,15 @@ import { AddBookCard } from '../components/AddBookCard';
 import { BookExpandedOverlay } from '../components/BookExpandedOverlay';
 import { BooksList } from '../components/BooksList';
 import { CreateBookOverlay } from '../components/CreateBookOverlay';
-import { mockBooks } from '../mock-data';
+import { useBooksStore } from '../books-store';
 import type { Book, BookRect } from '../types';
 
 /** Écran d'accueil : liste des livres de l'utilisateur. */
 export function ShelfScreen() {
   const theme = useTheme();
-  const [books, setBooks] = useState(mockBooks);
+  const books = useBooksStore((state) => state.books);
   const [openBook, setOpenBook] = useState<{ book: Book; rect: BookRect } | null>(null);
   const [createRect, setCreateRect] = useState<BookRect | null>(null);
-
-  const handleCreateBook = (data: Omit<Book, 'id' | 'createdAt'>) => {
-    setBooks((current) => [...current, { ...data, id: `book_${Date.now()}`, createdAt: Date.now() }]);
-  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -44,16 +40,10 @@ export function ShelfScreen() {
       </View>
 
       {openBook && (
-        <BookExpandedOverlay
-          book={openBook.book}
-          originRect={openBook.rect}
-          onClose={() => setOpenBook(null)}
-        />
+        <BookExpandedOverlay book={openBook.book} originRect={openBook.rect} onClose={() => setOpenBook(null)} />
       )}
 
-      {createRect && (
-        <CreateBookOverlay originRect={createRect} onClose={() => setCreateRect(null)} onCreate={handleCreateBook} />
-      )}
+      {createRect && <CreateBookOverlay originRect={createRect} onClose={() => setCreateRect(null)} />}
     </SafeAreaView>
   );
 }

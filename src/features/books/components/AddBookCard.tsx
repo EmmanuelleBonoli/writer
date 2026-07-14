@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react-native';
 import { useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
@@ -39,7 +40,7 @@ export function AddBookCard({ onOpen }: AddBookCardProps) {
             { backgroundColor: theme.backgroundElement, borderColor: theme.textSecondary },
           ]}
         >
-          <Text style={[styles.plus, { color: theme.textSecondary }]}>+</Text>
+          <Plus size={28} color={theme.textSecondary} />
           <Text style={[styles.label, { color: theme.textSecondary }]}>Nouveau livre</Text>
         </Animated.View>
       </View>
@@ -57,11 +58,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-  },
-  plus: {
-    fontSize: 32,
-    fontWeight: '300',
-    lineHeight: 32,
   },
   label: {
     fontSize: 13,

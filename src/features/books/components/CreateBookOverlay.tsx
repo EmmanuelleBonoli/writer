@@ -1,26 +1,30 @@
+import { useRouter } from 'expo-router';
+import { Plus } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
+import { useBooksStore } from '../books-store';
 import { useGenreColor } from '../genre-colors';
-import type { Book, BookGenre, BookRect } from '../types';
+import type { BookGenre, BookRect } from '../types';
 import { ExpandingCoverOverlay } from './ExpandingCoverOverlay';
 
 interface CreateBookOverlayProps {
   originRect: BookRect;
   onClose: () => void;
-  onCreate: (book: Omit<Book, 'id' | 'createdAt'>) => void;
 }
 
 const ALL_GENRES: BookGenre[] = ['Roman', 'Fantasy', 'Polar', 'Romance', 'Science-fiction', 'Historique'];
 
-// Couleur neutre de la couverture "vierge" : le genre n'est pas encore choisi, donc pas de couleur de genre.
 const CREATE_COVER_BACKGROUND = '#3A3550';
 
-export function CreateBookOverlay({ originRect, onClose, onCreate }: CreateBookOverlayProps) {
+/** Superposition de création : la carte flottante s'ouvre sur un formulaire (titre + thèmes), puis navigue vers le livre créé. */
+export function CreateBookOverlay({ originRect, onClose }: CreateBookOverlayProps) {
   const theme = useTheme();
+  const router = useRouter();
+  const addBook = useBooksStore((state) => state.addBook);
   const [title, setTitle] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<BookGenre[]>([]);
 
@@ -34,8 +38,9 @@ export function CreateBookOverlay({ originRect, onClose, onCreate }: CreateBookO
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-    onCreate({ title: title.trim(), genre: selectedGenres });
+    const book = addBook({ title: title.trim(), genre: selectedGenres });
     onClose();
+    router.push({ pathname: '/book/[id]', params: { id: book.id } });
   };
 
   return (
@@ -46,7 +51,7 @@ export function CreateBookOverlay({ originRect, onClose, onCreate }: CreateBookO
       interactivePage
       renderCover={() => (
         <>
-          <Text style={styles.coverPlus}>+</Text>
+          <Plus size={32} color="#ffffff" strokeWidth={2} style={styles.coverPlus} />
           <Text style={styles.coverLabel}>Nouveau livre</Text>
         </>
       )}
@@ -104,9 +109,7 @@ function GenreChip({ genre, selected, onToggle }: GenreChipProps) {
 
 const styles = StyleSheet.create({
   coverPlus: {
-    color: '#ffffff',
-    fontSize: 32,
-    fontWeight: '300',
+    marginBottom: Spacing.one,
   },
   coverLabel: {
     color: '#ffffff',
