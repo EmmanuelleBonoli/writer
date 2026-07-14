@@ -7,16 +7,14 @@ import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 import { useBooksStore } from '../books-store';
-import { useGenreColor } from '../genre-colors';
 import type { BookGenre, BookRect } from '../types';
 import { ExpandingCoverOverlay } from './ExpandingCoverOverlay';
+import { GenreSelector } from './GenreSelector';
 
 interface CreateBookOverlayProps {
   originRect: BookRect;
   onClose: () => void;
 }
-
-const ALL_GENRES: BookGenre[] = ['Roman', 'Fantasy', 'Polar', 'Romance', 'Science-fiction', 'Historique'];
 
 const CREATE_COVER_BACKGROUND = '#3A3550';
 
@@ -63,15 +61,11 @@ export function CreateBookOverlay({ originRect, onClose }: CreateBookOverlayProp
             onChangeText={setTitle}
             placeholder="Le titre de votre roman"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.titleInput, { color: theme.text, borderColor: theme.backgroundElement }]}
+            style={[styles.titleInput, { color: theme.text, borderColor: theme.border }]}
           />
 
           <Text style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.four }]}>Thèmes</Text>
-          <View style={styles.genreChips}>
-            {ALL_GENRES.map((genre) => (
-              <GenreChip key={genre} genre={genre} selected={selectedGenres.includes(genre)} onToggle={() => toggleGenre(genre)} />
-            ))}
-          </View>
+          <GenreSelector selectedGenres={selectedGenres} onToggle={toggleGenre} />
 
           <Pressable
             onPress={handleSubmit}
@@ -85,25 +79,6 @@ export function CreateBookOverlay({ originRect, onClose }: CreateBookOverlayProp
         </View>
       }
     />
-  );
-}
-
-interface GenreChipProps {
-  genre: BookGenre;
-  selected: boolean;
-  onToggle: () => void;
-}
-
-function GenreChip({ genre, selected, onToggle }: GenreChipProps) {
-  const color = useGenreColor(genre);
-
-  return (
-    <Pressable
-      onPress={onToggle}
-      style={[styles.chip, { borderColor: color, backgroundColor: selected ? color : 'transparent' }]}
-    >
-      <Text style={[styles.chipLabel, { color: selected ? '#ffffff' : color }]}>{genre}</Text>
-    </Pressable>
   );
 }
 
@@ -131,22 +106,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.two,
-  },
-  genreChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: Spacing.two,
-  },
-  chip: {
-    borderWidth: 1.5,
-    borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 6,
-  },
-  chipLabel: {
-    fontSize: 11,
-    fontWeight: '600',
   },
   submitButton: {
     marginTop: 'auto',

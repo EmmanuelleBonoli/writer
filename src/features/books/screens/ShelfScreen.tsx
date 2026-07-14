@@ -1,5 +1,7 @@
+import { useRouter } from 'expo-router';
+import { Settings } from 'lucide-react-native';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppLogo } from '@/components/AppLogo';
@@ -16,6 +18,7 @@ import type { Book, BookRect } from '../types';
 /** Écran d'accueil : liste des livres de l'utilisateur. */
 export function ShelfScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const books = useBooksStore((state) => state.books);
   const [openBook, setOpenBook] = useState<{ book: Book; rect: BookRect } | null>(null);
   const [createRect, setCreateRect] = useState<BookRect | null>(null);
@@ -30,6 +33,9 @@ export function ShelfScreen() {
             Chaque roman est un projet indépendant.
           </Text>
         </View>
+        <Pressable onPress={() => router.push('/settings')} style={styles.settingsButton} hitSlop={8}>
+          <Settings size={22} color={theme.textSecondary} />
+        </Pressable>
       </View>
       <View style={styles.listContainer}>
         <BooksList books={books} onOpenBook={(book, rect) => setOpenBook({ book, rect })} />
@@ -63,6 +69,9 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
     gap: Spacing.half,
+  },
+  settingsButton: {
+    padding: Spacing.one,
   },
   title: {
     fontSize: 30,

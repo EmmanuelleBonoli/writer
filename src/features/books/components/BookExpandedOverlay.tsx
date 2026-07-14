@@ -81,9 +81,14 @@ export function BookExpandedOverlay({ book, originRect, onClose }: BookExpandedO
             </Pressable>
 
             <Text style={[styles.pageTitle, { color: theme.text }]}>{book.title}</Text>
-            <Text style={[styles.pageHint, { color: theme.textSecondary }]}>
-              Le synopsis de ce livre arrivera bientôt ici.
-            </Text>
+
+            <View style={styles.pitchContainer}>
+              {book.bible.pitch ? (
+                <Text style={[styles.pitchText, { color: theme.text }]}>{book.bible.pitch}</Text>
+              ) : (
+                <Text style={[styles.pitchEmpty, { color: theme.textSecondary }]}>Aucun pitch pour l'instant.</Text>
+              )}
+            </View>
 
             <Pressable onPress={handleOpen} style={[styles.openButton, { backgroundColor: theme.text }]}>
               <BookOpen size={16} color={theme.background} />
@@ -132,9 +137,21 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.two,
     paddingRight: Spacing.five,
   },
-  pageHint: {
+  pitchContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pitchText: {
+    fontSize: 15,
+    lineHeight: 21,
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  pitchEmpty: {
     fontSize: 13,
     lineHeight: 18,
+    textAlign: 'center',
   },
   openButton: {
     marginTop: 'auto',

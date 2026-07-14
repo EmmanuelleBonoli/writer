@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react-native';
+import { PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,7 +9,10 @@ import { useTheme } from '@/hooks/use-theme';
 
 import { BOOK_SECTIONS, type BookSectionId } from '../book-sections';
 import { useBooksStore } from '../books-store';
+import { BibleSection } from '../components/BibleSection';
 import { BookDetailMenu, RAIL_BACKGROUND } from '../components/BookDetailMenu';
+import { CharactersSection } from '../components/CharactersSection';
+import { PlacesSection } from '../components/PlacesSection';
 
 interface BookDetailScreenProps {
   bookId: string;
@@ -46,11 +49,21 @@ export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
           <Text style={[styles.title, { color: theme.text }]}>{book.title}</Text>
 
           <Text style={[styles.sectionLabel, { color: theme.text }]}>{section.label}</Text>
-          <Text style={[styles.sectionPlaceholder, { color: theme.textSecondary }]}>{section.placeholder}</Text>
+
+          {activeSection === 'bible' && <BibleSection book={book} />}
+          {activeSection === 'characters' && <CharactersSection book={book} />}
+          {activeSection === 'places' && <PlacesSection book={book} />}
+          {(activeSection === 'timeline' || activeSection === 'writing') && (
+            <Text style={[styles.sectionPlaceholder, { color: theme.textSecondary }]}>{section.placeholder}</Text>
+          )}
         </View>
 
         <Pressable onPress={() => setMenuOpen((open) => !open)} style={styles.menuToggle} hitSlop={8}>
           {menuOpen ? <PanelLeftClose size={18} color="#ffffff" /> : <PanelLeftOpen size={18} color="#ffffff" />}
+        </Pressable>
+
+        <Pressable onPress={() => router.push('/settings')} style={styles.settingsButton} hitSlop={8}>
+          <Settings size={18} color="#ffffff" />
         </Pressable>
       </View>
     </SafeAreaView>
@@ -69,6 +82,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Spacing.three,
     left: 18,
+    width: 36,
+    height: 36,
+    borderRadius: Radii.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: RAIL_BACKGROUND,
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: Spacing.three,
+    right: Spacing.three,
     width: 36,
     height: 36,
     borderRadius: Radii.card,

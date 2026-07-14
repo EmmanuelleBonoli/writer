@@ -1,4 +1,4 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 
 import type { BookGenre } from './types';
 
@@ -21,19 +21,19 @@ const GENRE_COLORS = {
   },
 } as const satisfies Record<'light' | 'dark', Record<BookGenre, string>>;
 
-function getGenrePalette(scheme: ReturnType<typeof useColorScheme>) {
+function getGenrePalette(scheme: 'light' | 'dark') {
   return scheme === 'dark' ? GENRE_COLORS.dark : GENRE_COLORS.light;
 }
 
 /** Couleur de couverture pour un genre donné, adaptée au thème clair/sombre actif. */
 export function useGenreColor(genre: BookGenre): string {
-  const scheme = useColorScheme();
+  const scheme = useAppColorScheme();
   return getGenrePalette(scheme)[genre];
 }
 
 /** Couleur par genre pour une liste de genres (ex. reliure segmentée d'un livre multi-genres). */
 export function useGenreColors(genres: BookGenre[]): string[] {
-  const scheme = useColorScheme();
+  const scheme = useAppColorScheme();
   const palette = getGenrePalette(scheme);
   return genres.map((genre) => palette[genre]);
 }
