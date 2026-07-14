@@ -6,9 +6,6 @@ import { useTheme } from '@/hooks/use-theme';
 import type { Book, BookRect } from '../types';
 import { BookCover } from './BookCover';
 
-// Laisse assez de place en bas pour que la carte flottante d'ajout ne recouvre pas la dernière rangée.
-const FLOATING_BUTTON_CLEARANCE = 120;
-
 interface BooksListProps {
   books: Book[];
   onOpenBook: (book: Book, rect: BookRect) => void;
@@ -40,7 +37,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.four,
-    paddingBottom: FLOATING_BUTTON_CLEARANCE,
+    paddingBottom: Spacing.four,
   },
   emptyText: {
     fontSize: 14,

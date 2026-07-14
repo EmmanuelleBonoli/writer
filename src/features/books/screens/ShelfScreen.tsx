@@ -9,14 +9,20 @@ import { useTheme } from '@/hooks/use-theme';
 import { AddBookCard } from '../components/AddBookCard';
 import { BookExpandedOverlay } from '../components/BookExpandedOverlay';
 import { BooksList } from '../components/BooksList';
+import { CreateBookOverlay } from '../components/CreateBookOverlay';
 import { mockBooks } from '../mock-data';
 import type { Book, BookRect } from '../types';
 
 /** Écran d'accueil : liste des livres de l'utilisateur. */
 export function ShelfScreen() {
   const theme = useTheme();
-  const [books] = useState(mockBooks);
+  const [books, setBooks] = useState(mockBooks);
   const [openBook, setOpenBook] = useState<{ book: Book; rect: BookRect } | null>(null);
+  const [createRect, setCreateRect] = useState<BookRect | null>(null);
+
+  const handleCreateBook = (data: Omit<Book, 'id' | 'createdAt'>) => {
+    setBooks((current) => [...current, { ...data, id: `book_${Date.now()}`, createdAt: Date.now() }]);
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -33,8 +39,8 @@ export function ShelfScreen() {
         <BooksList books={books} onOpenBook={(book, rect) => setOpenBook({ book, rect })} />
       </View>
 
-      <View style={styles.floatingAddButton} pointerEvents="box-none">
-        <AddBookCard />
+      <View style={styles.footer}>
+        <AddBookCard onOpen={setCreateRect} />
       </View>
 
       {openBook && (
@@ -43,6 +49,10 @@ export function ShelfScreen() {
           originRect={openBook.rect}
           onClose={() => setOpenBook(null)}
         />
+      )}
+
+      {createRect && (
+        <CreateBookOverlay originRect={createRect} onClose={() => setCreateRect(null)} onCreate={handleCreateBook} />
       )}
     </SafeAreaView>
   );
@@ -75,11 +85,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: Spacing.four,
   },
-  floatingAddButton: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: Spacing.four,
+  footer: {
     alignItems: 'center',
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.four,
   },
 });

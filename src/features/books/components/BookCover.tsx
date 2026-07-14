@@ -1,6 +1,8 @@
 import { useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Radii } from '@/constants/theme';
+
 import { useGenreColor } from '../genre-colors';
 import type { Book, BookRect } from '../types';
 import { GenreStripe } from './GenreStripe';
@@ -45,7 +47,7 @@ const styles = StyleSheet.create({
   cover: {
     width: COVER_WIDTH,
     height: COVER_HEIGHT,
-    borderRadius: 8,
+    borderRadius: Radii.card,
     padding: 12,
     justifyContent: 'flex-end',
     overflow: 'hidden',
