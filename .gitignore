@@ -1,4 +1,4 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+atelier-ecriture.jsx
 
 # dependencies
 node_modules/
@@ -8,6 +8,7 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+.idea
 
 # Native
 .kotlin/
