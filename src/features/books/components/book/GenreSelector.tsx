@@ -1,14 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Radii, Spacing } from '@/constants/theme';
+import type { GenreChipProps, GenreSelectorProps } from '@/types/book.types';
 
-import { useGenreColor } from '../genre-colors';
-import { ALL_GENRES, type BookGenre } from '../types';
-
-interface GenreSelectorProps {
-  selectedGenres: BookGenre[];
-  onToggle: (genre: BookGenre) => void;
-}
+import { ALL_GENRES } from '../../book-defaults';
+import { useGenreColor } from '../../genre-colors';
 
 /** Puces de sélection multiple des genres/thèmes d'un livre — utilisé à la création et dans la Bible. */
 export function GenreSelector({ selectedGenres, onToggle }: GenreSelectorProps) {
@@ -19,12 +15,6 @@ export function GenreSelector({ selectedGenres, onToggle }: GenreSelectorProps) 
       ))}
     </View>
   );
-}
-
-interface GenreChipProps {
-  genre: BookGenre;
-  selected: boolean;
-  onToggle: () => void;
 }
 
 function GenreChip({ genre, selected, onToggle }: GenreChipProps) {

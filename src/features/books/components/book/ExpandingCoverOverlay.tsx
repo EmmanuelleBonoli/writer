@@ -1,28 +1,12 @@
-import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { Modal, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
-import Animated, {
-  runOnJS,
-  type SharedValue,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { ExpandingCoverOverlayProps } from '@/types/book.types';
 
-import type { BookRect } from '../types';
 import { COVER_HEIGHT, COVER_WIDTH } from './BookCover';
-
-interface ExpandingCoverOverlayProps {
-  originRect: BookRect;
-  coverBackgroundColor: string;
-  onClose: () => void;
-  interactivePage?: boolean;
-  renderCover: (params: { widthValue: SharedValue<number>; targetWidth: number }) => ReactNode;
-  pageContent: ReactNode;
-}
 
 const EXPAND_DURATION = 320;
 const OPEN_DURATION = 380;

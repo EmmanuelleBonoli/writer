@@ -2,15 +2,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-
-interface LabeledFieldProps {
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  placeholder?: string;
-  multiline?: boolean;
-  numberOfLines?: number;
-}
+import type { LabeledFieldProps } from '@/types/common.types';
 
 /** Champ de formulaire label + saisie, réutilisé par les sections d'un livre (Bible, Personnages...). */
 export function LabeledField({ label, value, onChangeText, placeholder, multiline, numberOfLines = 4 }: LabeledFieldProps) {

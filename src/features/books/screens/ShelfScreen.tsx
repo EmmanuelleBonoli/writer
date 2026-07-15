@@ -7,13 +7,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppLogo } from '@/components/AppLogo';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { Book, BookRect } from '@/types/book.types';
 
-import { AddBookCard } from '../components/AddBookCard';
-import { BookExpandedOverlay } from '../components/BookExpandedOverlay';
-import { BooksList } from '../components/BooksList';
-import { CreateBookOverlay } from '../components/CreateBookOverlay';
 import { useBooksStore } from '../books-store';
-import type { Book, BookRect } from '../types';
+import { AddBookCard } from '../components/book/AddBookCard';
+import { BookExpandedOverlay } from '../components/book/BookExpandedOverlay';
+import { BooksList } from '../components/book/BooksList';
+import { CreateBookOverlay } from '../components/book/CreateBookOverlay';
 
 /** Écran d'accueil : liste des livres de l'utilisateur. */
 export function ShelfScreen() {

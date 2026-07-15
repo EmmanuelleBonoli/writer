@@ -1,5 +1,6 @@
-import { EMPTY_BIBLE } from './types';
-import type { Book } from './types';
+import type { Book } from '@/types/book.types';
+
+import { createMainArc, EMPTY_BIBLE } from './book-defaults';
 
 export const mockBooks: Book[] = [
   {
@@ -10,6 +11,9 @@ export const mockBooks: Book[] = [
     bible: EMPTY_BIBLE,
     characters: [],
     places: [],
+    timeline: [],
+    arcs: [createMainArc()],
+    scenes: [],
   },
   {
     id: 'book_2',
@@ -19,6 +23,9 @@ export const mockBooks: Book[] = [
     bible: EMPTY_BIBLE,
     characters: [],
     places: [],
+    timeline: [],
+    arcs: [createMainArc()],
+    scenes: [],
   },
   {
     id: 'book_3',
@@ -28,5 +35,8 @@ export const mockBooks: Book[] = [
     bible: EMPTY_BIBLE,
     characters: [],
     places: [],
+    timeline: [],
+    arcs: [createMainArc()],
+    scenes: [],
   },
 ];

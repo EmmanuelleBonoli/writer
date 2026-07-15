@@ -2,14 +2,9 @@ import { ArrowLeft } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Radii, Spacing } from '@/constants/theme';
+import type { BookDetailMenuProps } from '@/types/book.types';
 
-import { BOOK_SECTIONS, type BookSectionId } from '../book-sections';
-
-interface BookDetailMenuProps {
-  activeSection: BookSectionId;
-  onSelectSection: (id: BookSectionId) => void;
-  onBack: () => void;
-}
+import { BOOK_SECTIONS } from '../../book-sections';
 
 // Même identité de marque fixe que AppLogo : le rail est un élément de "chrome", pas une surface themée.
 export const RAIL_BACKGROUND = '#2B2440';

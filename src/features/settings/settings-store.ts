@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type ThemePreference = 'light' | 'dark' | 'auto';
+import type { ThemePreference } from '@/types/settings.types';
 
 interface SettingsState {
   themePreference: ThemePreference;

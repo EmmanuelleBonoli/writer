@@ -1,6 +1,5 @@
 import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
-
-import type { BookGenre } from './types';
+import type { BookGenre } from '@/types/book.types';
 
 const GENRE_COLORS = {
   light: {

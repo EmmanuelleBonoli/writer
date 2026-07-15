@@ -1,22 +1,21 @@
 import { useRouter } from 'expo-router';
 import { PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { BookDetailScreenProps, BookSectionId } from '@/types/book.types';
 
-import { BOOK_SECTIONS, type BookSectionId } from '../book-sections';
+import { BOOK_SECTIONS } from '../book-sections';
 import { useBooksStore } from '../books-store';
-import { BibleSection } from '../components/BibleSection';
-import { BookDetailMenu, RAIL_BACKGROUND } from '../components/BookDetailMenu';
-import { CharactersSection } from '../components/CharactersSection';
-import { PlacesSection } from '../components/PlacesSection';
-
-interface BookDetailScreenProps {
-  bookId: string;
-}
+import { BibleSection } from '../components/bible/BibleSection';
+import { BookDetailMenu, RAIL_BACKGROUND } from '../components/book/BookDetailMenu';
+import { CharactersSection } from '../components/characters/CharactersSection';
+import { PlacesSection } from '../components/places/PlacesSection';
+import { TimelineSection } from '../components/timeline/TimelineSection';
+import { WritingSection } from '../components/writing/WritingSection';
 
 /** Écran de détail d'un livre : rail de navigation vers ses différents éléments (Bible, Personnages, Lieux...). */
 export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
@@ -25,6 +24,20 @@ export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
   const book = useBooksStore((state) => state.books.find((b) => b.id === bookId));
   const [activeSection, setActiveSection] = useState<BookSectionId>('bible');
   const [menuOpen, setMenuOpen] = useState(true);
+  // Scène à ouvrir directement à l'arrivée sur l'onglet Rédaction (déclenché depuis l'icône "scène liée" de la Timeline).
+  const [focusSceneId, setFocusSceneId] = useState<string | null>(null);
+
+  const openScene = (sceneId: string) => {
+    setFocusSceneId(sceneId);
+    setActiveSection('writing');
+  };
+
+  // Livre introuvable (id invalide, ou store réinitialisé après un rechargement web) : retour à l'étagère.
+  useEffect(() => {
+    if (!book) {
+      router.replace('/');
+    }
+  }, [book, router]);
 
   const section = BOOK_SECTIONS.find((s) => s.id === activeSection) ?? BOOK_SECTIONS[0];
 
@@ -53,8 +66,9 @@ export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
           {activeSection === 'bible' && <BibleSection book={book} />}
           {activeSection === 'characters' && <CharactersSection book={book} />}
           {activeSection === 'places' && <PlacesSection book={book} />}
-          {(activeSection === 'timeline' || activeSection === 'writing') && (
-            <Text style={[styles.sectionPlaceholder, { color: theme.textSecondary }]}>{section.placeholder}</Text>
+          {activeSection === 'timeline' && <TimelineSection book={book} onOpenScene={openScene} />}
+          {activeSection === 'writing' && (
+            <WritingSection book={book} focusSceneId={focusSceneId} onFocusConsumed={() => setFocusSceneId(null)} />
           )}
         </View>
 

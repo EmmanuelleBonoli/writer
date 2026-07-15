@@ -1,21 +1,10 @@
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react-native';
-import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-
-interface MasterDetailProps<T extends { id: string }> {
-  items: T[];
-  accentColor: string;
-  addLabel: string;
-  emptyLabel: string;
-  onAdd: () => T;
-  onDelete: (id: string) => void;
-  renderCard: (item: T) => ReactNode;
-  renderDetail: (item: T) => ReactNode;
-}
+import type { MasterDetailProps } from '@/types/common.types';
 
 /**
  * Galerie de fiches + vue détail plein écran. Mutualisé entre Personnages et Lieux, dont la structure
@@ -30,9 +19,22 @@ export function MasterDetail<T extends { id: string }>({
   onDelete,
   renderCard,
   renderDetail,
+  renderCardAccessory,
+  cardAccentColor,
+  selectedId: controlledSelectedId,
+  onSelectId,
+  hideAddButton,
 }: MasterDetailProps<T>) {
   const theme = useTheme();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
+  const isControlled = controlledSelectedId !== undefined;
+  const selectedId = isControlled ? controlledSelectedId : internalSelectedId;
+
+  const setSelectedId = (id: string | null) => {
+    onSelectId?.(id);
+    if (!isControlled) setInternalSelectedId(id);
+  };
+
   const current = items.find((item) => item.id === selectedId) ?? null;
 
   useEffect(() => {
@@ -70,23 +72,31 @@ export function MasterDetail<T extends { id: string }>({
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.listContainer}>
-      <Pressable onPress={() => setSelectedId(onAdd().id)} style={[styles.addButton, { backgroundColor: accentColor }]}>
-        <Plus size={14} color="#ffffff" />
-        <Text style={styles.addButtonLabel}>{addLabel}</Text>
-      </Pressable>
+      {!hideAddButton && (
+        <Pressable onPress={() => setSelectedId(onAdd().id)} style={[styles.addButton, { backgroundColor: accentColor }]}>
+          <Plus size={14} color="#ffffff" />
+          <Text style={styles.addButtonLabel}>{addLabel}</Text>
+        </Pressable>
+      )}
 
       {items.length === 0 ? (
         <Text style={[styles.emptyText, { color: theme.textSecondary }]}>{emptyLabel}</Text>
       ) : (
         <View style={styles.list}>
-          {items.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => setSelectedId(item.id)}
-              style={[styles.card, { backgroundColor: theme.backgroundElement }]}
-            >
-              {renderCard(item)}
-            </Pressable>
+          {items.map((item, index) => (
+            <View key={item.id} style={styles.cardRow}>
+              <Pressable
+                onPress={() => setSelectedId(item.id)}
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.backgroundElement },
+                  cardAccentColor && { borderLeftWidth: 4, borderLeftColor: cardAccentColor(item) },
+                ]}
+              >
+                {renderCard(item)}
+              </Pressable>
+              {renderCardAccessory && <View style={styles.cardAccessory}>{renderCardAccessory(item, index)}</View>}
+            </View>
           ))}
         </View>
       )}
@@ -125,9 +135,18 @@ const styles = StyleSheet.create({
   list: {
     gap: Spacing.three,
   },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: Spacing.two,
+  },
   card: {
+    flex: 1,
     borderRadius: Radii.card,
     padding: Spacing.three,
+  },
+  cardAccessory: {
+    justifyContent: 'center',
   },
   backLink: {
     flexDirection: 'row',

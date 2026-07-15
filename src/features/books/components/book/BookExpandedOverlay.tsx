@@ -2,29 +2,16 @@ import { useRouter } from 'expo-router';
 import { BookOpen, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { Extrapolation, interpolate, type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import Animated, { Extrapolation, interpolate, useAnimatedStyle } from 'react-native-reanimated';
 
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { BookExpandedOverlayProps, CoverFaceProps } from '@/types/book.types';
 
-import { useBooksStore } from '../books-store';
-import { useGenreColor } from '../genre-colors';
-import type { Book, BookRect } from '../types';
+import { useBooksStore } from '../../books-store';
+import { useGenreColor } from '../../genre-colors';
 import { ExpandingCoverOverlay } from './ExpandingCoverOverlay';
 import { GenreStripe } from './GenreStripe';
-
-interface BookExpandedOverlayProps {
-  book: Book;
-  originRect: BookRect;
-  onClose: () => void;
-}
-
-interface CoverFaceProps {
-  book: Book;
-  originWidth: number;
-  targetWidth: number;
-  widthValue: SharedValue<number>;
-}
 
 /** Contenu affiché sur la couverture pendant qu'elle s'agrandit : le titre grossit en phase avec la largeur animée. */
 function CoverFace({ book, originWidth, targetWidth, widthValue }: CoverFaceProps) {

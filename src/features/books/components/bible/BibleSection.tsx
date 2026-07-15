@@ -2,15 +2,11 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { BibleSectionProps, BookBible, BookGenre } from '@/types/book.types';
 
-import { useBooksStore } from '../books-store';
-import type { Book, BookBible, BookGenre } from '../types';
-import { GenreSelector } from './GenreSelector';
-import { LabeledField } from './LabeledField';
-
-interface BibleSectionProps {
-  book: Book;
-}
+import { useBooksStore } from '../../books-store';
+import { GenreSelector } from '../book/GenreSelector';
+import { LabeledField } from '../shared/LabeledField';
 
 /** Bible du roman : titre, genre, ton, pitch, synopsis, thèmes, règles du monde. */
 export function BibleSection({ book }: BibleSectionProps) {

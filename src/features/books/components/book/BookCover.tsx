@@ -1,34 +1,23 @@
-import { useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Radii } from '@/constants/theme';
+import type { BookCoverProps } from '@/types/book.types';
 
-import { useGenreColor } from '../genre-colors';
-import type { Book, BookRect } from '../types';
+import { useGenreColor } from '../../genre-colors';
+import { useMeasureOnPress } from '../../hooks/use-measure-on-press';
 import { GenreStripe } from './GenreStripe';
-
-interface BookCoverProps {
-  book: Book;
-  onOpen: (book: Book, rect: BookRect) => void;
-}
 
 export const COVER_WIDTH = 108;
 export const COVER_HEIGHT = 162;
 
 /** Couverture de livre vue de face, posée dans la grille de l'étagère. */
 export function BookCover({ book, onOpen }: BookCoverProps) {
-  const coverRef = useRef<View>(null);
   const spineColor = useGenreColor(book.genre[0]);
-
-  const handlePress = () => {
-    coverRef.current?.measureInWindow((x, y, width, height) => {
-      onOpen(book, { x, y, width, height });
-    });
-  };
+  const { ref, handlePress } = useMeasureOnPress((rect) => onOpen(book, rect));
 
   return (
     <Pressable onPress={handlePress}>
-      <View ref={coverRef} style={[styles.cover, { backgroundColor: spineColor }]} collapsable={false}>
+      <View ref={ref} style={[styles.cover, { backgroundColor: spineColor }]} collapsable={false}>
         <GenreStripe genres={book.genre} />
 
         <Text style={styles.genreLabel} numberOfLines={2}>

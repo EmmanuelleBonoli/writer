@@ -1,14 +1,6 @@
-import { BookOpen, Clock, MapPin, PenLine, Users, type LucideIcon } from 'lucide-react-native';
+import { BookOpen, Clock, MapPin, PenLine, Users } from 'lucide-react-native';
 
-export type BookSectionId = 'bible' | 'characters' | 'places' | 'timeline' | 'writing';
-
-interface BookSectionConfig {
-  id: BookSectionId;
-  label: string;
-  icon: LucideIcon;
-  color: string;
-  placeholder: string;
-}
+import type { BookSectionConfig } from '@/types/book.types';
 
 /** Les sections du menu de détail d'un livre. */
 export const BOOK_SECTIONS: BookSectionConfig[] = [

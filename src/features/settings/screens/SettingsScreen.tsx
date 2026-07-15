@@ -5,8 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { ThemePreference } from '@/types/settings.types';
 
-import { useSettingsStore, type ThemePreference } from '../settings-store';
+import { useSettingsStore } from '../settings-store';
 
 const THEME_OPTIONS: { id: ThemePreference; label: string; icon: typeof Sun }[] = [
   { id: 'light', label: 'Clair', icon: Sun },

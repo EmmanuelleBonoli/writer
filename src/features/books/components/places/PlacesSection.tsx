@@ -2,15 +2,11 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { Place, PlacesSectionProps } from '@/types/place.types';
 
-import { useBooksStore } from '../books-store';
-import type { Book, Place } from '../types';
-import { LabeledField } from './LabeledField';
-import { MasterDetail } from './MasterDetail';
-
-interface PlacesSectionProps {
-  book: Book;
-}
+import { useBookCollection } from '../../hooks/use-book-collection';
+import { LabeledField } from '../shared/LabeledField';
+import { MasterDetail } from '../shared/MasterDetail';
 
 const ACCENT_COLOR = '#2F9BFF';
 
@@ -26,24 +22,19 @@ function createPlace(): Place {
 /** Fiches des lieux de l'univers du livre — galerie + fiche détaillée, sur le même gabarit que les Personnages. */
 export function PlacesSection({ book }: PlacesSectionProps) {
   const theme = useTheme();
-  const updateBook = useBooksStore((state) => state.updateBook);
-
-  const setField = (placeId: string, key: keyof Place, value: string) => {
-    updateBook(book.id, (current) => ({
-      ...current,
-      places: current.places.map((p) => (p.id === placeId ? { ...p, [key]: value } : p)),
-    }));
-  };
+  const { setField, add, remove } = useBookCollection<Place>(
+    book,
+    (b) => b.places,
+    (b, places) => ({ ...b, places }),
+  );
 
   const handleAdd = () => {
     const place = createPlace();
-    updateBook(book.id, (current) => ({ ...current, places: [...current.places, place] }));
+    add(place);
     return place;
   };
 
-  const handleDelete = (id: string) => {
-    updateBook(book.id, (current) => ({ ...current, places: current.places.filter((p) => p.id !== id) }));
-  };
+  const handleDelete = (id: string) => remove(id);
 
   return (
     <MasterDetail

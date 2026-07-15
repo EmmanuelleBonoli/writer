@@ -2,15 +2,11 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { Character, CharactersSectionProps } from '@/types/character.types';
 
-import { useBooksStore } from '../books-store';
-import type { Book, Character } from '../types';
-import { LabeledField } from './LabeledField';
-import { MasterDetail } from './MasterDetail';
-
-interface CharactersSectionProps {
-  book: Book;
-}
+import { useBookCollection } from '../../hooks/use-book-collection';
+import { LabeledField } from '../shared/LabeledField';
+import { MasterDetail } from '../shared/MasterDetail';
 
 const ACCENT_COLOR = '#12B76A';
 
@@ -30,24 +26,19 @@ function createCharacter(): Character {
 /** Fiches des personnages du livre — galerie + fiche détaillée, sur le même gabarit que les Lieux. */
 export function CharactersSection({ book }: CharactersSectionProps) {
   const theme = useTheme();
-  const updateBook = useBooksStore((state) => state.updateBook);
-
-  const setField = (characterId: string, key: keyof Character, value: string) => {
-    updateBook(book.id, (current) => ({
-      ...current,
-      characters: current.characters.map((c) => (c.id === characterId ? { ...c, [key]: value } : c)),
-    }));
-  };
+  const { setField, add, remove } = useBookCollection<Character>(
+    book,
+    (b) => b.characters,
+    (b, characters) => ({ ...b, characters }),
+  );
 
   const handleAdd = () => {
     const character = createCharacter();
-    updateBook(book.id, (current) => ({ ...current, characters: [...current.characters, character] }));
+    add(character);
     return character;
   };
 
-  const handleDelete = (id: string) => {
-    updateBook(book.id, (current) => ({ ...current, characters: current.characters.filter((c) => c.id !== id) }));
-  };
+  const handleDelete = (id: string) => remove(id);
 
   return (
     <MasterDetail

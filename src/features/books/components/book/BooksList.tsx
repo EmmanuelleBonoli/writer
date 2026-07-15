@@ -2,14 +2,9 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { BooksListProps } from '@/types/book.types';
 
-import type { Book, BookRect } from '../types';
 import { BookCover } from './BookCover';
-
-interface BooksListProps {
-  books: Book[];
-  onOpenBook: (book: Book, rect: BookRect) => void;
-}
 
 /** Grille de couvertures de livres, avec état vide dédié. */
 export function BooksList({ books, onOpenBook }: BooksListProps) {

@@ -1,11 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 
-import { useGenreColors } from '../genre-colors';
-import type { BookGenre } from '../types';
+import type { GenreStripeProps } from '@/types/book.types';
 
-interface GenreStripeProps {
-  genres: BookGenre[];
-}
+import { useGenreColors } from '../../genre-colors';
 
 /** Bande de reliure sur le bord de la couverture : un segment de couleur par genre du livre. */
 export function GenreStripe({ genres }: GenreStripeProps) {

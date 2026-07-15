@@ -5,16 +5,11 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { BookGenre, CreateBookOverlayProps } from '@/types/book.types';
 
-import { useBooksStore } from '../books-store';
-import type { BookGenre, BookRect } from '../types';
+import { useBooksStore } from '../../books-store';
 import { ExpandingCoverOverlay } from './ExpandingCoverOverlay';
 import { GenreSelector } from './GenreSelector';
-
-interface CreateBookOverlayProps {
-  originRect: BookRect;
-  onClose: () => void;
-}
 
 const CREATE_COVER_BACKGROUND = '#3A3550';
 

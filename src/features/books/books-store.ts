@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 
+import type { Book } from '@/types/book.types';
+
+import { createMainArc, EMPTY_BIBLE } from './book-defaults';
 import { mockBooks } from './mock-data';
-import { EMPTY_BIBLE, type Book } from './types';
 
 interface BooksState {
   books: Book[];
-  addBook: (data: Omit<Book, 'id' | 'createdAt' | 'bible' | 'characters' | 'places'>) => Book;
+  addBook: (data: Omit<Book, 'id' | 'createdAt' | 'bible' | 'characters' | 'places' | 'timeline' | 'arcs' | 'scenes'>) => Book;
   deleteBook: (id: string) => void;
   updateBook: (id: string, updater: (book: Book) => Book) => void;
 }
@@ -22,6 +24,9 @@ export const useBooksStore = create<BooksState>((set) => ({
       bible: EMPTY_BIBLE,
       characters: [],
       places: [],
+      timeline: [],
+      arcs: [createMainArc()],
+      scenes: [],
     };
     set((state) => ({ books: [...state.books, book] }));
     return book;

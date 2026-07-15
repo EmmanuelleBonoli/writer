@@ -1,29 +1,23 @@
 import { Plus } from 'lucide-react-native';
-import { useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
 import { Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { AddBookCardProps } from '@/types/book.types';
 
-import type { BookRect } from '../types';
+import { useMeasureOnPress } from '../../hooks/use-measure-on-press';
 import { COVER_HEIGHT, COVER_WIDTH } from './BookCover';
-
-interface AddBookCardProps {
-  onOpen: (rect: BookRect) => void;
-}
 
 /** Carte flottante toujours visible pour démarrer un nouveau livre */
 export function AddBookCard({ onOpen }: AddBookCardProps) {
   const theme = useTheme();
   const scale = useSharedValue(1);
-  const cardRef = useRef<View>(null);
+  const { ref, handlePress: measureAndOpen } = useMeasureOnPress(onOpen);
 
   const handlePress = () => {
     scale.value = withSequence(withTiming(0.92, { duration: 80 }), withTiming(1, { duration: 120 }));
-    cardRef.current?.measureInWindow((x, y, width, height) => {
-      onOpen({ x, y, width, height });
-    });
+    measureAndOpen();
   };
 
   const pulseStyle = useAnimatedStyle(() => ({
@@ -32,7 +26,7 @@ export function AddBookCard({ onOpen }: AddBookCardProps) {
 
   return (
     <Pressable onPress={handlePress}>
-      <View ref={cardRef} collapsable={false}>
+      <View ref={ref} collapsable={false}>
         <Animated.View
           style={[
             styles.card,
