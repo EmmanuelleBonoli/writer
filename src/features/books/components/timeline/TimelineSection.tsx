@@ -5,10 +5,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Arc, TimelineEvent, TimelineSectionProps } from '@/types/timeline.types';
+import type { Scene } from '@/types/writing.types';
 
 import { ARC_COLORS, createMainArc, MAIN_ARC_ID } from '../../book-defaults';
 import { useBooksStore } from '../../books-store';
 import { useBookCollection } from '../../hooks/use-book-collection';
+import { createSceneFromEvent } from '../../writing/scene-factory';
 import { LabeledField } from '../shared/LabeledField';
 import { MasterDetail } from '../shared/MasterDetail';
 import { TagChips } from '../shared/TagChips';
@@ -47,6 +49,12 @@ export function TimelineSection({ book, onOpenScene }: TimelineSectionProps) {
     (b, timeline) => ({ ...b, timeline }),
   );
 
+  const { add: addScene } = useBookCollection<Scene>(
+    book,
+    (b) => b.scenes,
+    (b, scenes) => ({ ...b, scenes }),
+  );
+
   const handleAdd = () => {
     const event = createEvent(sortedEvents.length);
     add(event);
@@ -66,6 +74,20 @@ export function TimelineSection({ book, onOpenScene }: TimelineSectionProps) {
   };
 
   const findLinkedScene = (eventId: string) => book.scenes.find((scene) => scene.timelineEventId === eventId) ?? null;
+
+  /** Ouvre la scène reliée à l'événement, ou la crée (préremplie depuis l'événement) si elle n'existe pas encore. */
+  const handleOpenEventScene = (eventId: string) => {
+    const existing = findLinkedScene(eventId);
+    if (existing) {
+      onOpenScene(existing.id);
+      return;
+    }
+    const event = sortedEvents.find((e) => e.id === eventId);
+    if (!event) return;
+    const scene = createSceneFromEvent(book.scenes.length, event);
+    addScene(scene);
+    onOpenScene(scene.id);
+  };
 
   const handleAddArc = () => {
     const newArc: Arc = {
@@ -152,7 +174,7 @@ export function TimelineSection({ book, onOpenScene }: TimelineSectionProps) {
           arcs={arcs}
           scenes={book.scenes}
           onSelectEvent={setSelectedEventId}
-          onOpenScene={onOpenScene}
+          onOpenEventScene={handleOpenEventScene}
         />
       ) : (
         <MasterDetail
@@ -172,7 +194,7 @@ export function TimelineSection({ book, onOpenScene }: TimelineSectionProps) {
                 <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>
                   {event.title || 'Sans titre'}
                 </Text>
-                <SceneLinkBadge linkedSceneId={findLinkedScene(event.id)?.id ?? null} onOpenScene={onOpenScene} />
+                <SceneLinkBadge linked={findLinkedScene(event.id) !== null} onPress={() => handleOpenEventScene(event.id)} />
               </View>
               <Text style={[styles.cardPreview, { color: theme.textSecondary }]} numberOfLines={2}>
                 {event.description || 'Événement vide.'}
@@ -203,15 +225,14 @@ export function TimelineSection({ book, onOpenScene }: TimelineSectionProps) {
                 />
 
                 <Pressable
-                  onPress={() => linkedScene && onOpenScene(linkedScene.id)}
-                  disabled={!linkedScene}
+                  onPress={() => handleOpenEventScene(event.id)}
                   style={[styles.sceneLinkRow, { borderColor: linkedScene ? SCENE_LINK_COLOR : theme.border }]}
                 >
                   <PenLine size={14} color={linkedScene ? SCENE_LINK_COLOR : theme.textSecondary} />
                   <Text style={[styles.sceneLinkLabel, { color: linkedScene ? SCENE_LINK_COLOR : theme.textSecondary }]}>
                     {linkedScene
                       ? `Scène rédigée : ${linkedScene.title || 'Sans titre'}`
-                      : 'Aucune scène rédigée pour cet événement'}
+                      : 'Créer et ouvrir la scène pour cet événement'}
                   </Text>
                 </Pressable>
 

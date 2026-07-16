@@ -18,13 +18,18 @@ export function useBookCollection<T extends { id: string }>(
 ) {
   const updateBook = useBooksStore((state) => state.updateBook);
 
-  const setField = <F extends keyof T>(itemId: string, field: F, value: T[F]) => {
+  /** Applique un patch (un ou plusieurs champs) à un item de la collection en une seule mise à jour. */
+  const patchItem = (itemId: string, patch: Partial<T>) => {
     updateBook(book.id, (current) =>
       update(
         current,
-        select(current).map((item) => (item.id === itemId ? { ...item, [field]: value } : item)),
+        select(current).map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
       ),
     );
+  };
+
+  const setField = <F extends keyof T>(itemId: string, field: F, value: T[F]) => {
+    patchItem(itemId, { [field]: value } as unknown as Partial<T>);
   };
 
   /** Ajoute `value` au tableau `field` de l'item s'il n'y est pas, le retire sinon (ex. tagguer un personnage). */
@@ -65,5 +70,5 @@ export function useBookCollection<T extends { id: string }>(
     updateBook(book.id, (current) => update(current, reordered.map(reindex)));
   };
 
-  return { setField, toggleInField, add, remove, move };
+  return { setField, patchItem, toggleInField, add, remove, move };
 }

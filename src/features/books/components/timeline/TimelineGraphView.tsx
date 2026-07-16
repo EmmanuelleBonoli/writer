@@ -5,19 +5,10 @@ import { Line, Path, Svg, Text as SvgText } from 'react-native-svg';
 
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import type { TimelineEvent, TimelineGraphViewProps, TimelineOrientation } from '@/types/timeline.types';
+import type { TimelineGraphViewProps, TimelineOrientation } from '@/types/timeline.types';
 
+import { computeTimelineLayout, TIMELINE_NODE_HEIGHT, TIMELINE_NODE_WIDTH } from '../../timeline/timeline-layout';
 import { SceneLinkBadge } from './SceneLinkBadge';
-
-const NODE_WIDTH = 130;
-const NODE_HEIGHT = 56;
-const MARGIN_LEFT = 12;
-const MARGIN_TOP = 28;
-
-// Espacement entre événements consécutifs (axe principal) et entre lanes d'arcs (axe transversal),
-// différent selon l'orientation pour laisser assez de place aux nœuds et aux libellés.
-const MAIN_SPACING = { horizontal: 140, vertical: 90 };
-const CROSS_SPACING = { horizontal: 90, vertical: 160 };
 
 /**
  * Vue graphique de la timeline : une ligne (ou colonne) par arc narratif, les événements positionnés
@@ -25,84 +16,11 @@ const CROSS_SPACING = { horizontal: 90, vertical: 160 };
  * Les nœuds (cartes RN superposées au SVG) sont cliquables pour ouvrir la fiche de l'événement.
  * Un bouton permet de basculer entre disposition linéaire horizontale et verticale.
  */
-export function TimelineGraphView({ events, arcs, scenes, onSelectEvent, onOpenScene }: TimelineGraphViewProps) {
+export function TimelineGraphView({ events, arcs, scenes, onSelectEvent, onOpenEventScene }: TimelineGraphViewProps) {
   const theme = useTheme();
   const [orientation, setOrientation] = useState<TimelineOrientation>('horizontal');
   const isHorizontal = orientation === 'horizontal';
-  const laneIndex = new Map(arcs.map((arc, i) => [arc.id, i]));
-
-  const mainSpacing = MAIN_SPACING[orientation];
-  const crossSpacing = CROSS_SPACING[orientation];
-
-  const pos = (event: TimelineEvent) => {
-    const rank = events.findIndex((e) => e.id === event.id);
-    const lane = laneIndex.get(event.arcId) ?? 0;
-    return isHorizontal
-      ? { x: MARGIN_LEFT + rank * mainSpacing, y: MARGIN_TOP + lane * crossSpacing }
-      : { x: MARGIN_LEFT + lane * crossSpacing, y: MARGIN_TOP + rank * mainSpacing };
-  };
-
-  const width = isHorizontal
-    ? MARGIN_LEFT * 2 + Math.max(events.length, 1) * mainSpacing
-    : MARGIN_LEFT * 2 + Math.max(arcs.length, 1) * crossSpacing;
-  const height = isHorizontal
-    ? MARGIN_TOP + arcs.length * crossSpacing + 20
-    : MARGIN_TOP + Math.max(events.length, 1) * mainSpacing + 20;
-
-  const arcLines: { id: string; x1: number; y1: number; x2: number; y2: number; color: string }[] = [];
-  arcs.forEach((arc) => {
-    const arcEvents = events.filter((event) => event.arcId === arc.id);
-    for (let i = 0; i < arcEvents.length - 1; i++) {
-      const from = pos(arcEvents[i]);
-      const to = pos(arcEvents[i + 1]);
-      arcLines.push({
-        id: `${arc.id}-${i}`,
-        x1: from.x + NODE_WIDTH / 2,
-        y1: from.y + NODE_HEIGHT / 2,
-        x2: to.x + NODE_WIDTH / 2,
-        y2: to.y + NODE_HEIGHT / 2,
-        color: arc.color,
-      });
-    }
-  });
-
-  const linkPaths: { id: string; d: string; color: string }[] = [];
-  arcs.forEach((arc) => {
-    if (!arc.linkedArcId) return;
-    const arcEvents = events.filter((event) => event.arcId === arc.id);
-    const last = arcEvents[arcEvents.length - 1];
-    if (!last) return;
-
-    const from = pos(last);
-    let to: { x: number; y: number };
-    if (arc.connectsToEventId) {
-      const target = events.find((event) => event.id === arc.connectsToEventId);
-      if (!target) return;
-      to = pos(target);
-    } else {
-      const targetLane = laneIndex.get(arc.linkedArcId) ?? 0;
-      to = isHorizontal
-        ? { x: from.x, y: MARGIN_TOP + targetLane * crossSpacing }
-        : { x: MARGIN_LEFT + targetLane * crossSpacing, y: from.y };
-    }
-
-    const fromX = from.x + NODE_WIDTH / 2;
-    const fromY = from.y + NODE_HEIGHT / 2;
-    const toX = to.x + NODE_WIDTH / 2;
-    const toY = to.y + NODE_HEIGHT / 2;
-
-    const d = isHorizontal
-      ? (() => {
-          const midY = (fromY + toY) / 2;
-          return `M ${fromX} ${fromY} C ${fromX} ${midY}, ${toX} ${midY}, ${toX} ${toY}`;
-        })()
-      : (() => {
-          const midX = (fromX + toX) / 2;
-          return `M ${fromX} ${fromY} C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}`;
-        })();
-
-    linkPaths.push({ id: arc.id, d, color: arc.color });
-  });
+  const { width, height, nodes, laneGuides, arcLines, linkPaths } = computeTimelineLayout(events, arcs, orientation);
 
   return (
     <View style={styles.container}>
@@ -125,37 +43,14 @@ export function TimelineGraphView({ events, arcs, scenes, onSelectEvent, onOpenS
         <ScrollView horizontal contentContainerStyle={styles.scrollContent}>
           <View style={{ width, height }}>
             <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
-              {arcs.map((arc, i) =>
-                isHorizontal ? (
-                  <Fragment key={arc.id}>
-                    <Line
-                      x1={0}
-                      y1={MARGIN_TOP + i * crossSpacing + NODE_HEIGHT / 2}
-                      x2={width}
-                      y2={MARGIN_TOP + i * crossSpacing + NODE_HEIGHT / 2}
-                      stroke={theme.border}
-                      strokeWidth={1}
-                    />
-                    <SvgText x={4} y={MARGIN_TOP + i * crossSpacing - 8} fontSize={11} fill={theme.textSecondary}>
-                      {arc.title}
-                    </SvgText>
-                  </Fragment>
-                ) : (
-                  <Fragment key={arc.id}>
-                    <Line
-                      x1={MARGIN_LEFT + i * crossSpacing + NODE_WIDTH / 2}
-                      y1={0}
-                      x2={MARGIN_LEFT + i * crossSpacing + NODE_WIDTH / 2}
-                      y2={height}
-                      stroke={theme.border}
-                      strokeWidth={1}
-                    />
-                    <SvgText x={MARGIN_LEFT + i * crossSpacing} y={16} fontSize={11} fill={theme.textSecondary}>
-                      {arc.title}
-                    </SvgText>
-                  </Fragment>
-                )
-              )}
+              {laneGuides.map((lane) => (
+                <Fragment key={lane.arcId}>
+                  <Line x1={lane.x1} y1={lane.y1} x2={lane.x2} y2={lane.y2} stroke={theme.border} strokeWidth={1} />
+                  <SvgText x={lane.labelX} y={lane.labelY} fontSize={11} fill={theme.textSecondary}>
+                    {lane.title}
+                  </SvgText>
+                </Fragment>
+              ))}
 
               {arcLines.map((line) => (
                 <Line key={line.id} x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke={line.color} strokeWidth={2} />
@@ -166,8 +61,8 @@ export function TimelineGraphView({ events, arcs, scenes, onSelectEvent, onOpenS
               ))}
             </Svg>
 
-            {events.map((event) => {
-              const p = pos(event);
+            {events.map((event, index) => {
+              const p = nodes[index];
               const arc = arcs.find((a) => a.id === event.arcId) ?? arcs[0];
               return (
                 <Pressable
@@ -178,8 +73,8 @@ export function TimelineGraphView({ events, arcs, scenes, onSelectEvent, onOpenS
                     {
                       left: p.x,
                       top: p.y,
-                      width: NODE_WIDTH,
-                      height: NODE_HEIGHT,
+                      width: TIMELINE_NODE_WIDTH,
+                      height: TIMELINE_NODE_HEIGHT,
                       backgroundColor: theme.background,
                       borderColor: arc?.color ?? theme.border,
                     },
@@ -196,8 +91,8 @@ export function TimelineGraphView({ events, arcs, scenes, onSelectEvent, onOpenS
 
                   <View style={styles.sceneLinkCorner}>
                     <SceneLinkBadge
-                      linkedSceneId={scenes.find((scene) => scene.timelineEventId === event.id)?.id ?? null}
-                      onOpenScene={onOpenScene}
+                      linked={scenes.some((scene) => scene.timelineEventId === event.id)}
+                      onPress={() => onOpenEventScene(event.id)}
                     />
                   </View>
                 </Pressable>

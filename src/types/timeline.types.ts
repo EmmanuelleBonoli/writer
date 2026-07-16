@@ -33,7 +33,8 @@ export interface TimelineGraphViewProps {
   arcs: Arc[];
   scenes: Scene[];
   onSelectEvent: (id: string) => void;
-  onOpenScene: (sceneId: string) => void;
+  /** Ouvre la scène reliée à l'événement, ou la crée (préremplie depuis l'événement) si elle n'existe pas encore. */
+  onOpenEventScene: (eventId: string) => void;
 }
 
 export type TimelineOrientation = 'horizontal' | 'vertical';
@@ -47,6 +48,7 @@ export interface ArcManagerProps {
 }
 
 export interface SceneLinkBadgeProps {
-  linkedSceneId: string | null;
-  onOpenScene: (sceneId: string) => void;
+  /** Purement visuel : plein si une scène est déjà reliée, contour sinon. */
+  linked: boolean;
+  onPress: () => void;
 }

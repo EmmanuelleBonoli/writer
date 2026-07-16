@@ -16,6 +16,7 @@ import { CharactersSection } from '../components/characters/CharactersSection';
 import { PlacesSection } from '../components/places/PlacesSection';
 import { TimelineSection } from '../components/timeline/TimelineSection';
 import { WritingSection } from '../components/writing/WritingSection';
+import { ExportSection } from '../components/export/ExportSection';
 
 /** Écran de détail d'un livre : rail de navigation vers ses différents éléments (Bible, Personnages, Lieux...). */
 export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
@@ -70,6 +71,7 @@ export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
           {activeSection === 'writing' && (
             <WritingSection book={book} focusSceneId={focusSceneId} onFocusConsumed={() => setFocusSceneId(null)} />
           )}
+          {activeSection === 'export' && <ExportSection book={book} />}
         </View>
 
         <Pressable onPress={() => setMenuOpen((open) => !open)} style={styles.menuToggle} hitSlop={8}>

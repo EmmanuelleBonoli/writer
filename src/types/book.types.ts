@@ -44,7 +44,7 @@ export interface BookRect {
   height: number;
 }
 
-export type BookSectionId = 'bible' | 'characters' | 'places' | 'timeline' | 'writing';
+export type BookSectionId = 'bible' | 'characters' | 'places' | 'timeline' | 'writing' | 'export';
 
 export interface BookSectionConfig {
   id: BookSectionId;

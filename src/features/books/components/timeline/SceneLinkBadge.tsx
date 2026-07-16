@@ -7,25 +7,25 @@ import type { SceneLinkBadgeProps } from '@/types/timeline.types';
 export const SCENE_LINK_COLOR = '#0D9488';
 
 /**
- * Pastille indiquant si une scène de rédaction est reliée à un événement — pleine et cliquable si oui
- * (redirige vers la scène), simple contour grisé sinon. Utilisée sur les cartes, la fiche détail et le graphe.
+ * Pastille indiquant si une scène de rédaction est reliée à un événement — pleine si oui, simple contour
+ * sinon. Toujours cliquable : ouvre la scène liée, ou la crée (préremplie depuis l'événement) sinon.
+ * Utilisée sur les cartes, la fiche détail et le graphe.
  */
-export function SceneLinkBadge({ linkedSceneId, onOpenScene }: SceneLinkBadgeProps) {
+export function SceneLinkBadge({ linked, onPress }: SceneLinkBadgeProps) {
   const theme = useTheme();
 
   return (
     <Pressable
-      onPress={() => linkedSceneId && onOpenScene(linkedSceneId)}
-      disabled={!linkedSceneId}
+      onPress={onPress}
       hitSlop={8}
       style={[
         styles.badge,
-        linkedSceneId
+        linked
           ? { backgroundColor: SCENE_LINK_COLOR, borderColor: SCENE_LINK_COLOR }
           : { backgroundColor: theme.background, borderColor: theme.border },
       ]}
     >
-      <PenLine size={12} color={linkedSceneId ? '#ffffff' : theme.border} />
+      <PenLine size={12} color={linked ? '#ffffff' : theme.border} />
     </Pressable>
   );
 }

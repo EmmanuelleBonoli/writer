@@ -32,7 +32,15 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Autoriser $(PRODUCT_NAME) à utiliser le microphone pour la dictée vocale.",
+          "speechRecognitionPermission": "Autoriser $(PRODUCT_NAME) à utiliser la reconnaissance vocale pour la dictée."
+        }
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,

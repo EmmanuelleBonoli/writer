@@ -1,7 +1,8 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
-import { ChevronDown, ChevronUp, Plus, Upload } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
+import { ChevronDown, ChevronUp, Mic, Plus, Square, Download } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Radii, Spacing } from '@/constants/theme';
@@ -10,6 +11,8 @@ import type { Scene, WritingSectionProps } from '@/types/writing.types';
 
 import { extractTextFromDocx } from '../../docx-import';
 import { useBookCollection } from '../../hooks/use-book-collection';
+import { applyEventToScene, createScene } from '../../writing/scene-factory';
+import { withAlineaIndent } from '../../writing/text-formatting';
 import { CheckableDropdown } from '../shared/CheckableDropdown';
 import { LabeledField } from '../shared/LabeledField';
 import { MasterDetail } from '../shared/MasterDetail';
@@ -18,31 +21,9 @@ const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordproces
 
 const ACCENT_COLOR = '#0D9488';
 
-function createScene(order: number): Scene {
-  return {
-    id: `scene_${Date.now()}`,
-    title: `Scène ${order + 1}`,
-    order,
-    content: '',
-    characterIds: [],
-    placeIds: [],
-    timelineEventId: null,
-  };
-}
-
 function wordCount(content: string): number {
   const trimmed = content.trim();
   return trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
-}
-
-/**
- * Ajoute un retrait d'alinéa (tabulation) en début de chaque paragraphe. Un `TextInput` ne peut pas
- * appliquer un retrait de première ligne comme un vrai traitement de texte : on matérialise l'alinéa
- * par une tabulation, aussi bien pour la saisie directe que pour le texte importé depuis un .docx.
- */
-function withAlineaIndent(text: string): string {
-  const indented = text.replace(/\n(?!\t)/g, '\n\t');
-  return indented.length > 0 && !indented.startsWith('\t') ? `\t${indented}` : indented;
 }
 
 /** Rédaction du livre — scènes ordonnées, reliables à des personnages, des lieux et un événement de la timeline. */
@@ -50,6 +31,8 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
   const theme = useTheme();
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [importingSceneId, setImportingSceneId] = useState<string | null>(null);
+  const [dictatingSceneId, setDictatingSceneId] = useState<string | null>(null);
+  const dictationBaseRef = useRef('');
 
   const sortedScenes = [...book.scenes].sort((a, b) => a.order - b.order);
   const sortedEvents = [...book.timeline].sort((a, b) => a.order - b.order);
@@ -62,7 +45,7 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusSceneId]);
 
-  const { setField, toggleInField, add, remove, move } = useBookCollection<Scene>(
+  const { setField, patchItem, toggleInField, add, remove, move } = useBookCollection<Scene>(
     book,
     (b) => b.scenes,
     (b, scenes) => ({ ...b, scenes }),
@@ -83,6 +66,17 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
 
   const togglePlace = (scene: Scene, placeId: string) => toggleInField(scene.id, 'placeIds', placeId);
 
+  /** Relie (ou délie) une scène à un événement ; en cas de liaison, complète les champs vides de la scène avec les données de l'événement. */
+  const linkTimelineEvent = (scene: Scene, eventId: string) => {
+    if (scene.timelineEventId === eventId) {
+      setField(scene.id, 'timelineEventId', null);
+      return;
+    }
+    const event = sortedEvents.find((e) => e.id === eventId);
+    if (!event) return;
+    patchItem(scene.id, { timelineEventId: eventId, ...applyEventToScene(scene, event) });
+  };
+
   const handleImportDocx = async (scene: Scene) => {
     const result = await DocumentPicker.getDocumentAsync({ type: DOCX_MIME_TYPE });
     if (result.canceled) return;
@@ -99,6 +93,43 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
     } finally {
       setImportingSceneId(null);
     }
+  };
+
+  useSpeechRecognitionEvent('result', (event) => {
+    if (!dictatingSceneId) return;
+    const transcript = event.results[0]?.transcript ?? '';
+    const base = dictationBaseRef.current;
+    setField(dictatingSceneId, 'content', withAlineaIndent(base ? `${base} ${transcript}` : transcript));
+    if (event.isFinal) {
+      dictationBaseRef.current = base ? `${base} ${transcript}` : transcript;
+    }
+  });
+
+  useSpeechRecognitionEvent('error', (event) => {
+    if (!dictatingSceneId) return;
+    console.error('Erreur de reconnaissance vocale :', event.error, event.message);
+    Alert.alert('Dictée impossible', "La reconnaissance vocale a rencontré une erreur. Réessayez.");
+  });
+
+  useSpeechRecognitionEvent('end', () => {
+    setDictatingSceneId(null);
+  });
+
+  const handleToggleDictation = async (scene: Scene) => {
+    if (dictatingSceneId === scene.id) {
+      ExpoSpeechRecognitionModule.stop();
+      return;
+    }
+
+    const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Micro indisponible', "Vous devez autoriser l'accès au micro pour utiliser la dictée vocale.");
+      return;
+    }
+
+    dictationBaseRef.current = scene.content;
+    setDictatingSceneId(scene.id);
+    ExpoSpeechRecognitionModule.start({ lang: 'fr-FR', interimResults: true, continuous: true });
   };
 
   return (
@@ -144,6 +175,14 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
         )}
         renderDetail={(scene) => (
           <View>
+            <CheckableDropdown
+              label="Événement de la timeline"
+              options={sortedEvents.map((e) => ({ id: e.id, label: e.title || 'Sans titre' }))}
+              selectedIds={scene.timelineEventId ? [scene.timelineEventId] : []}
+              onToggle={(id) => linkTimelineEvent(scene, id)}
+              placeholder="Non reliée"
+            />
+
             <LabeledField label="Titre" value={scene.title} onChangeText={(v) => setField(scene.id, 'title', v)} />
 
             <View style={styles.tagRow}>
@@ -176,28 +215,40 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
               numberOfLines={12}
             />
 
-            <Pressable
-              onPress={() => handleImportDocx(scene)}
-              disabled={importingSceneId === scene.id}
-              style={[styles.importButton, { borderColor: theme.border }]}
-            >
-              {importingSceneId === scene.id ? (
-                <ActivityIndicator size="small" color={theme.text} />
-              ) : (
-                <Upload size={14} color={theme.text} />
-              )}
-              <Text style={[styles.importButtonLabel, { color: theme.text }]}>
-                {importingSceneId === scene.id ? 'Import en cours…' : 'Importer un .docx'}
-              </Text>
-            </Pressable>
+            <View style={styles.actionsRow}>
+              <Pressable
+                onPress={() => handleToggleDictation(scene)}
+                disabled={dictatingSceneId !== null && dictatingSceneId !== scene.id}
+                style={[
+                  styles.importButton,
+                  { borderColor: dictatingSceneId === scene.id ? '#EF4444' : theme.border },
+                ]}
+              >
+                {dictatingSceneId === scene.id ? (
+                  <Square size={14} color="#EF4444" />
+                ) : (
+                  <Mic size={14} color={theme.text} />
+                )}
+                <Text style={[styles.importButtonLabel, { color: dictatingSceneId === scene.id ? '#EF4444' : theme.text }]}>
+                  {dictatingSceneId === scene.id ? 'Arrêter la dictée' : 'Dicter'}
+                </Text>
+              </Pressable>
 
-            <CheckableDropdown
-              label="Événement de la timeline"
-              options={sortedEvents.map((e) => ({ id: e.id, label: e.title || 'Sans titre' }))}
-              selectedIds={scene.timelineEventId ? [scene.timelineEventId] : []}
-              onToggle={(id) => setField(scene.id, 'timelineEventId', scene.timelineEventId === id ? null : id)}
-              placeholder="Non reliée"
-            />
+              <Pressable
+                onPress={() => handleImportDocx(scene)}
+                disabled={importingSceneId === scene.id}
+                style={[styles.importButton, { borderColor: theme.border }]}
+              >
+                {importingSceneId === scene.id ? (
+                  <ActivityIndicator size="small" color={theme.text} />
+                ) : (
+                  <Download size={14} color={theme.text} />
+                )}
+                <Text style={[styles.importButtonLabel, { color: theme.text }]}>
+                  {importingSceneId === scene.id ? 'Import en cours…' : 'Importer un .docx'}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         )}
       />
@@ -253,16 +304,20 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 150,
   },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.two,
+    marginBottom: Spacing.four,
+  },
   importButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-end',
     gap: Spacing.one,
     borderWidth: 1,
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
-    marginBottom: Spacing.four,
   },
   importButtonLabel: {
     fontSize: 12,

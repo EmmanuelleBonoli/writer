@@ -1,7 +1,9 @@
+import * as DocumentPicker from 'expo-document-picker';
+import { File } from 'expo-file-system';
 import { useRouter } from 'expo-router';
-import { Settings } from 'lucide-react-native';
+import { Download, Settings } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppLogo } from '@/components/AppLogo';
@@ -14,14 +16,42 @@ import { AddBookCard } from '../components/book/AddBookCard';
 import { BookExpandedOverlay } from '../components/book/BookExpandedOverlay';
 import { BooksList } from '../components/book/BooksList';
 import { CreateBookOverlay } from '../components/book/CreateBookOverlay';
+import { parseBookImport } from '../import-project';
+
+const PROJECT_JSON_MIME_TYPE = 'application/json';
 
 /** Écran d'accueil : liste des livres de l'utilisateur. */
 export function ShelfScreen() {
   const theme = useTheme();
   const router = useRouter();
   const books = useBooksStore((state) => state.books);
+  const importBook = useBooksStore((state) => state.importBook);
   const [openBook, setOpenBook] = useState<{ book: Book; rect: BookRect } | null>(null);
   const [createRect, setCreateRect] = useState<BookRect | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  /** Recharge un projet sauvegardé (fichier JSON) : crée un nouveau livre et l'ouvre directement. */
+  const handleImportProject = async () => {
+    const result = await DocumentPicker.getDocumentAsync({ type: PROJECT_JSON_MIME_TYPE });
+    if (result.canceled) return;
+
+    const asset = result.assets[0];
+    setIsImporting(true);
+    try {
+      const text = asset.file ? await asset.file.text() : await new File(asset.uri).text();
+      const book = parseBookImport(text);
+      const imported = importBook(book);
+      router.push({ pathname: '/book/[id]', params: { id: imported.id } });
+    } catch (error) {
+      console.error("Échec de l'import du projet :", error);
+      Alert.alert(
+        'Import impossible',
+        error instanceof Error ? error.message : "Ce fichier n'a pas pu être chargé.",
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -33,6 +63,13 @@ export function ShelfScreen() {
             Chaque roman est un projet indépendant.
           </Text>
         </View>
+        <Pressable onPress={handleImportProject} disabled={isImporting} style={styles.settingsButton} hitSlop={8}>
+          {isImporting ? (
+            <ActivityIndicator size="small" color={theme.textSecondary} />
+          ) : (
+            <Download size={22} color={theme.textSecondary} />
+          )}
+        </Pressable>
         <Pressable onPress={() => router.push('/settings')} style={styles.settingsButton} hitSlop={8}>
           <Settings size={22} color={theme.textSecondary} />
         </Pressable>
