@@ -3,8 +3,9 @@ import { File } from 'expo-file-system';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { BookOpen, ChevronDown, ChevronUp, Mic, Plus, Square, Download } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { showToast } from '@/components/toast/toast-store';
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Chapter, Scene, WritingSectionProps } from '@/types/writing.types';
@@ -151,7 +152,7 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
       setField(scene.id, 'content', withAlineaIndent(text));
     } catch (error) {
       console.error("Échec de l'import du document Word :", error);
-      Alert.alert('Import impossible', "Ce fichier n'a pas pu être lu. Vérifiez qu'il s'agit bien d'un document Word (.docx).");
+      showToast("Import impossible : ce fichier n'a pas pu être lu. Vérifiez qu'il s'agit bien d'un document Word (.docx).");
     } finally {
       setImportingSceneId(null);
     }
@@ -170,7 +171,7 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
   useSpeechRecognitionEvent('error', (event) => {
     if (!dictatingSceneId) return;
     console.error('Erreur de reconnaissance vocale :', event.error, event.message);
-    Alert.alert('Dictée impossible', "La reconnaissance vocale a rencontré une erreur. Réessayez.");
+    showToast('Dictée impossible : la reconnaissance vocale a rencontré une erreur. Réessayez.');
   });
 
   useSpeechRecognitionEvent('end', () => {
@@ -185,7 +186,7 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
 
     const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Micro indisponible', "Vous devez autoriser l'accès au micro pour utiliser la dictée vocale.");
+      showToast("Micro indisponible : vous devez autoriser l'accès au micro pour utiliser la dictée vocale.");
       return;
     }
 

@@ -2,6 +2,7 @@ import {DarkTheme, DefaultTheme, Stack, ThemeProvider} from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 
+import { ToastHost } from '@/components/toast/ToastHost';
 import { useBooksStore } from '@/features/books/books-store';
 import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 
@@ -27,6 +28,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }} />
+      <ToastHost />
     </ThemeProvider>
   );
 }

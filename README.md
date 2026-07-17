@@ -1,56 +1,82 @@
-# Welcome to your Expo app 👋
+# Writer
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Application d'aide à l'écriture de roman (Expo / React Native, iOS · Android · Web). Un livre = un projet indépendant, avec tout ce qu'il faut pour construire son univers, structurer son intrigue et rédiger le manuscrit.
 
-## Get started
+## Fonctionnalités
 
-1. Install dependencies
+**Bible du roman** — ton, pitch, synopsis développé, thèmes explorés, règles du monde.
 
-   ```bash
-   npm install
-   ```
+**Personnages** — fiches complètes (âge, apparence, psychologie, arc narratif, relations, voix), en galerie + détail.
 
-2. Start the app
+**Lieux** — description sensorielle et fonction narrative de chaque lieu de l'univers.
 
-   ```bash
-   npx expo start
-   ```
+**Timeline** — événements clés de l'intrigue, regroupés par arc principal et sous-arcs narratifs (avec jonctions entre arcs), vue liste ou graphique.
 
-In the output, you'll find options to open the app in a
+**Rédaction**
+- Scènes reliables à des personnages, des lieux et un événement de la timeline
+- Regroupement en chapitres (création, réorganisation, nombre de mots par chapitre, filtrage de l'affichage par chapitre)
+- Import d'un document Word (`.docx`) existant
+- Dictée vocale
+- Réécriture assistée par IA (Gemini, via un Worker Cloudflare) : réécrit un passage existant ou génère un champ vide à partir du reste du contexte (bible, personnages, lieux, chapitre) ; un bouton permet de revenir à la version précédente après une réécriture
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+**Notes** — carnet libre pour les idées en vrac, pistes à explorer, dialogues à recaser, séparé de la Bible.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+**Recherche globale** — cherche un mot dans toute la Bible, les personnages, les lieux, les scènes, les notes et la timeline, avec un tap pour ouvrir directement la fiche concernée. Inclut un rechercher-remplacer global (utile par exemple pour renommer un personnage partout d'un coup).
 
-## Get a fresh project
+**Cohérence des données** — les références vers un élément supprimé (personnage, lieu, événement, arc) sont nettoyées automatiquement en arrière-plan, sans intervention nécessaire.
 
-When you're ready, run:
+**Export** — génère le manuscrit en Word ou PDF, sections au choix, avec sommaire automatique dès qu'il y a des chapitres.
+
+**Sauvegarde de projet** — export/import JSON pour recharger un livre sur un autre appareil (l'app ne dépend d'aucun backend : tout est stocké localement).
+
+**Thème** clair/sombre automatique (suit le système).
+
+## Stack technique
+
+- [Expo](https://expo.dev) / React Native, [Expo Router](https://docs.expo.dev/router/introduction) (routing par fichiers)
+- TypeScript
+- [Zustand](https://github.com/pmndrs/zustand) (état global + persistance locale)
+- [docx](https://www.npmjs.com/package/docx) (génération du manuscrit Word), `expo-print` (PDF)
+- `expo-speech-recognition` (dictée vocale), `expo-document-picker` (import `.docx` / JSON)
+- Worker Cloudflare + [Gemini](https://ai.google.dev/) (réécriture IA) — voir `server/ai-rewrite-worker/`
+- [lucide-react-native](https://lucide.dev/) (icônes)
+
+## Démarrer le projet
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Depuis la sortie de la commande, ouvrez l'app dans un [build de développement](https://docs.expo.dev/develop/development-builds/introduction/), un émulateur Android, un simulateur iOS, [Expo Go](https://expo.dev/go), ou le web.
 
-### Other setup steps
+## Configurer la réécriture assistée par IA (optionnel)
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+La réécriture IA passe par un petit Worker Cloudflare qui appelle l'API Gemini — sans cette configuration, le reste de l'app fonctionne normalement, seule cette fonctionnalité reste indisponible.
 
-## Learn more
+1. Créez une clé API sur [Google AI Studio](https://aistudio.google.com/apikey).
+2. Déployez le Worker :
+   ```bash
+   cd server/ai-rewrite-worker
+   npx wrangler login
+   npx wrangler secret put GEMINI_API_KEY
+   npm run deploy
+   ```
+3. Copiez `.env.example` en `.env` à la racine du projet et renseignez l'URL affichée par `wrangler deploy` :
+   ```
+   EXPO_PUBLIC_AI_REWRITE_ENDPOINT=https://ai-rewrite-worker.<ton-sous-domaine>.workers.dev
+   ```
+4. Relancez `npx expo start`.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Structure du projet
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```
+src/
+  app/                 Routes (Expo Router)
+  features/books/       Logique et composants de l'app (un dossier par section : bible, characters,
+                         places, timeline, writing, notes, search, export...)
+  types/                 Types TypeScript centralisés (un fichier par domaine)
+  components/            Composants transverses (logo, toasts...)
+  hooks/, constants/      Utilitaires partagés
+server/ai-rewrite-worker/ Worker Cloudflare pour la réécriture IA (Gemini)
+```

@@ -3,8 +3,9 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Check, Save, Upload } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { showToast } from '@/components/toast/toast-store';
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { ExportableSectionId, ExportFormat, ExportSectionProps } from '@/types/export.types';
@@ -93,7 +94,7 @@ export function ExportSection({ book }: ExportSectionProps) {
 
   const handleExport = async () => {
     if (selectedSections.size === 0) {
-      Alert.alert('Aucune section sélectionnée', 'Choisissez au moins une section à exporter.');
+      showToast('Aucune section sélectionnée : choisissez au moins une section à exporter.');
       return;
     }
 
@@ -135,7 +136,7 @@ export function ExportSection({ book }: ExportSectionProps) {
       }
     } catch (error) {
       console.error("Échec de l'export du manuscrit :", error);
-      Alert.alert('Export impossible', 'Une erreur est survenue pendant la génération du document. Réessayez.');
+      showToast('Export impossible : une erreur est survenue pendant la génération du document. Réessayez.');
     } finally {
       setIsExporting(false);
     }
@@ -158,7 +159,7 @@ export function ExportSection({ book }: ExportSectionProps) {
       }
     } catch (error) {
       console.error('Échec de la sauvegarde du projet :', error);
-      Alert.alert('Sauvegarde impossible', 'Une erreur est survenue pendant la génération du fichier. Réessayez.');
+      showToast('Sauvegarde impossible : une erreur est survenue pendant la génération du fichier. Réessayez.');
     } finally {
       setIsSavingProject(false);
     }

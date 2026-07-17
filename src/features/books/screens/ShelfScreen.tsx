@@ -3,10 +3,11 @@ import { File } from 'expo-file-system';
 import { useRouter } from 'expo-router';
 import { Download, Settings } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppLogo } from '@/components/AppLogo';
+import { showToast } from '@/components/toast/toast-store';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Book, BookRect } from '@/types/book.types';
@@ -44,10 +45,7 @@ export function ShelfScreen() {
       router.push({ pathname: '/book/[id]', params: { id: imported.id } });
     } catch (error) {
       console.error("Échec de l'import du projet :", error);
-      Alert.alert(
-        'Import impossible',
-        error instanceof Error ? error.message : "Ce fichier n'a pas pu être chargé.",
-      );
+      showToast(`Import impossible : ${error instanceof Error ? error.message : "ce fichier n'a pas pu être chargé."}`);
     } finally {
       setIsImporting(false);
     }
