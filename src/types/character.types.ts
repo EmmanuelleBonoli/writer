@@ -13,4 +13,7 @@ export interface Character {
 
 export interface CharactersSectionProps {
   book: Book;
+  /** Personnage à ouvrir directement à l'arrivée sur l'onglet (ex. depuis un résultat de recherche). */
+  focusCharacterId: string | null;
+  onFocusConsumed: () => void;
 }

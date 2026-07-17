@@ -10,27 +10,61 @@ import type { BookDetailScreenProps, BookSectionId } from '@/types/book.types';
 
 import { BOOK_SECTIONS } from '../book-sections';
 import { useBooksStore } from '../books-store';
+import { sanitizeBook } from '../sanitize-book';
 import { BibleSection } from '../components/bible/BibleSection';
 import { BookDetailMenu, RAIL_BACKGROUND } from '../components/book/BookDetailMenu';
 import { CharactersSection } from '../components/characters/CharactersSection';
+import { ExportSection } from '../components/export/ExportSection';
+import { NotesSection } from '../components/notes/NotesSection';
 import { PlacesSection } from '../components/places/PlacesSection';
+import { SearchOverlay } from '../components/search/SearchOverlay';
 import { TimelineSection } from '../components/timeline/TimelineSection';
 import { WritingSection } from '../components/writing/WritingSection';
-import { ExportSection } from '../components/export/ExportSection';
 
 /** Écran de détail d'un livre : rail de navigation vers ses différents éléments (Bible, Personnages, Lieux...). */
 export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
   const theme = useTheme();
   const router = useRouter();
   const book = useBooksStore((state) => state.books.find((b) => b.id === bookId));
+  const updateBook = useBooksStore((state) => state.updateBook);
   const [activeSection, setActiveSection] = useState<BookSectionId>('bible');
   const [menuOpen, setMenuOpen] = useState(true);
   // Scène à ouvrir directement à l'arrivée sur l'onglet Rédaction (déclenché depuis l'icône "scène liée" de la Timeline).
   const [focusSceneId, setFocusSceneId] = useState<string | null>(null);
+  const [focusNoteId, setFocusNoteId] = useState<string | null>(null);
+  const [focusCharacterId, setFocusCharacterId] = useState<string | null>(null);
+  const [focusPlaceId, setFocusPlaceId] = useState<string | null>(null);
+  const [focusEventId, setFocusEventId] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  const handleSelectSection = (id: BookSectionId) => {
+    setSearchOpen(false);
+    setActiveSection(id);
+  };
 
   const openScene = (sceneId: string) => {
     setFocusSceneId(sceneId);
     setActiveSection('writing');
+  };
+
+  const openCharacter = (characterId: string) => {
+    setFocusCharacterId(characterId);
+    setActiveSection('characters');
+  };
+
+  const openPlace = (placeId: string) => {
+    setFocusPlaceId(placeId);
+    setActiveSection('places');
+  };
+
+  const openNote = (noteId: string) => {
+    setFocusNoteId(noteId);
+    setActiveSection('notes');
+  };
+
+  const openTimelineEvent = (eventId: string) => {
+    setFocusEventId(eventId);
+    setActiveSection('timeline');
   };
 
   // Livre introuvable (id invalide, ou store réinitialisé après un rechargement web) : retour à l'étagère.
@@ -39,6 +73,16 @@ export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
       router.replace('/');
     }
   }, [book, router]);
+
+  // Nettoie une bonne fois les références cassées d'un livre déjà sauvegardé avant l'ajout de ce garde-fou
+  useEffect(() => {
+    if (!book) return;
+    const sanitized = sanitizeBook(book);
+    if (JSON.stringify(sanitized) !== JSON.stringify(book)) {
+      updateBook(book.id, () => sanitized);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [book?.id]);
 
   const section = BOOK_SECTIONS.find((s) => s.id === activeSection) ?? BOOK_SECTIONS[0];
 
@@ -54,24 +98,64 @@ export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.body}>
         {menuOpen && (
-          <BookDetailMenu activeSection={activeSection} onSelectSection={setActiveSection} onBack={() => router.back()} />
+          <BookDetailMenu
+            activeSection={activeSection}
+            onSelectSection={handleSelectSection}
+            onBack={() => router.replace('/')}
+            onSearch={() => setSearchOpen(true)}
+            searchActive={searchOpen}
+          />
         )}
 
         <View style={styles.content}>
-          <View style={[styles.sectionAccent, { backgroundColor: section.color }]} />
-          <Text style={[styles.genre, { color: theme.textSecondary }]}>{book.genre.join(' · ')}</Text>
-          <Text style={[styles.title, { color: theme.text }]}>{book.title}</Text>
+          {searchOpen ? (
+            <SearchOverlay
+              book={book}
+              onClose={() => setSearchOpen(false)}
+              onOpenBible={() => setActiveSection('bible')}
+              onOpenCharacter={openCharacter}
+              onOpenPlace={openPlace}
+              onOpenScene={openScene}
+              onOpenNote={openNote}
+              onOpenTimelineEvent={openTimelineEvent}
+              onReplace={(updatedBook) => updateBook(book.id, () => updatedBook)}
+            />
+          ) : (
+            <>
+              <View style={[styles.sectionAccent, { backgroundColor: section.color }]} />
+              <Text style={[styles.genre, { color: theme.textSecondary }]}>{book.genre.join(' · ')}</Text>
+              <Text style={[styles.title, { color: theme.text }]}>{book.title}</Text>
 
-          <Text style={[styles.sectionLabel, { color: theme.text }]}>{section.label}</Text>
+              <Text style={[styles.sectionLabel, { color: theme.text }]}>{section.label}</Text>
 
-          {activeSection === 'bible' && <BibleSection book={book} />}
-          {activeSection === 'characters' && <CharactersSection book={book} />}
-          {activeSection === 'places' && <PlacesSection book={book} />}
-          {activeSection === 'timeline' && <TimelineSection book={book} onOpenScene={openScene} />}
-          {activeSection === 'writing' && (
-            <WritingSection book={book} focusSceneId={focusSceneId} onFocusConsumed={() => setFocusSceneId(null)} />
+              {activeSection === 'bible' && <BibleSection book={book} />}
+              {activeSection === 'characters' && (
+                <CharactersSection
+                  book={book}
+                  focusCharacterId={focusCharacterId}
+                  onFocusConsumed={() => setFocusCharacterId(null)}
+                />
+              )}
+              {activeSection === 'places' && (
+                <PlacesSection book={book} focusPlaceId={focusPlaceId} onFocusConsumed={() => setFocusPlaceId(null)} />
+              )}
+              {activeSection === 'timeline' && (
+                <TimelineSection
+                  book={book}
+                  onOpenScene={openScene}
+                  focusEventId={focusEventId}
+                  onFocusConsumed={() => setFocusEventId(null)}
+                />
+              )}
+              {activeSection === 'writing' && (
+                <WritingSection book={book} focusSceneId={focusSceneId} onFocusConsumed={() => setFocusSceneId(null)} />
+              )}
+              {activeSection === 'notes' && (
+                <NotesSection book={book} focusNoteId={focusNoteId} onFocusConsumed={() => setFocusNoteId(null)} />
+              )}
+              {activeSection === 'export' && <ExportSection book={book} />}
+            </>
           )}
-          {activeSection === 'export' && <ExportSection book={book} />}
         </View>
 
         <Pressable onPress={() => setMenuOpen((open) => !open)} style={styles.menuToggle} hitSlop={8}>

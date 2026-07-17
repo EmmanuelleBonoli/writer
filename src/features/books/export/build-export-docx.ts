@@ -4,8 +4,9 @@ import type { Book } from '@/types/book.types';
 import type { ExportableSectionId } from '@/types/export.types';
 
 import { BOOK_SECTIONS } from '../book-sections';
+import { groupScenesByChapter } from '../writing/chapter-grouping';
 
-const SECTION_ORDER: ExportableSectionId[] = ['bible', 'characters', 'places', 'timeline', 'writing'];
+const SECTION_ORDER: ExportableSectionId[] = ['bible', 'characters', 'places', 'timeline', 'writing', 'notes'];
 const SECONDARY_COLOR = '60646C';
 const BORDER_COLOR = 'C7C9D1';
 const MAX_IMAGE_WIDTH = 550;
@@ -206,10 +207,60 @@ function buildSceneParagraphs(book: Book, scene: Book['scenes'][number], isFirst
   ];
 }
 
+function buildChapterHeading(title: string): Paragraph {
+  return new Paragraph({
+    spacing: { before: 280, after: 160 },
+    children: [new TextRun({ text: title, bold: true, size: 30 })],
+  });
+}
+
 function buildWritingParagraphs(book: Book): Paragraph[] {
-  const sortedScenes = [...book.scenes].sort((a, b) => a.order - b.order);
-  if (sortedScenes.length === 0) return [sectionHeading('writing'), emptyHintParagraph('Aucune scène rédigée.')];
-  return [sectionHeading('writing'), ...sortedScenes.flatMap((scene, index) => buildSceneParagraphs(book, scene, index === 0))];
+  const groups = groupScenesByChapter(book.scenes, book.chapters).filter((group) => group.scenes.length > 0);
+  if (groups.length === 0) return [sectionHeading('writing'), emptyHintParagraph('Aucune scène rédigée.')];
+
+  const hasChapters = book.chapters.length > 0;
+  return [
+    sectionHeading('writing'),
+    ...groups.flatMap((group) => [
+      ...(hasChapters ? [buildChapterHeading(group.chapter?.title || 'Sans chapitre')] : []),
+      ...group.scenes.flatMap((scene, index) => buildSceneParagraphs(book, scene, index === 0)),
+    ]),
+  ];
+}
+
+/** Sommaire statique (titres de chapitres dans l'ordre) — pas un champ TOC Word dynamique, pour rester identique entre l'export Word et l'export PDF. */
+function buildTableOfContentsParagraphs(book: Book): Paragraph[] {
+  const sortedChapters = [...book.chapters].sort((a, b) => a.order - b.order);
+  return [
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      pageBreakBefore: true,
+      spacing: { after: 240 },
+      children: [new TextRun({ text: 'Table des matières', bold: true })],
+    }),
+    ...sortedChapters.map(
+      (chapter, index) =>
+        new Paragraph({
+          spacing: { after: 120 },
+          children: [new TextRun({ text: `${index + 1}. ${chapter.title || 'Sans titre'}`, size: 22 })],
+        }),
+    ),
+  ];
+}
+
+function buildNotesParagraphs(book: Book): Paragraph[] {
+  const notes = book.notes ?? [];
+  if (notes.length === 0) return [sectionHeading('notes'), emptyHintParagraph('Aucune note.')];
+  return [
+    sectionHeading('notes'),
+    ...notes.flatMap((note) => [
+      new Paragraph({
+        spacing: { before: 200, after: 80 },
+        children: [new TextRun({ text: note.title || 'Sans titre', bold: true, size: 26 })],
+      }),
+      ...fieldParagraphs('Contenu', note.content),
+    ]),
+  ];
 }
 
 /**
@@ -228,9 +279,15 @@ export async function buildExportDocx(
     places: () => buildPlacesParagraphs(book),
     timeline: () => buildTimelineParagraphs(book, timelineImage),
     writing: () => buildWritingParagraphs(book),
+    notes: () => buildNotesParagraphs(book),
   };
 
-  const children = [...buildTitlePage(book), ...SECTION_ORDER.filter((id) => selected.has(id)).flatMap((id) => builders[id]())];
+  const includeToc = selected.has('writing') && book.chapters.length > 0;
+  const children = [
+    ...buildTitlePage(book),
+    ...(includeToc ? buildTableOfContentsParagraphs(book) : []),
+    ...SECTION_ORDER.filter((id) => selected.has(id)).flatMap((id) => builders[id]()),
+  ];
 
   const doc = new Document({ sections: [{ properties: {}, children }] });
   return Packer.toBase64String(doc);

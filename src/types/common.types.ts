@@ -58,5 +58,10 @@ export interface AiRewritePanelProps {
   title: string;
   fields: AiRewriteField[];
   rewrite: (fieldKey: string, content: string, instruction: string) => Promise<string>;
-  onApply: (fieldKey: string, text: string) => void;
+  /** `previousValue` = valeur du champ juste avant application, pour permettre à l'appelant de proposer un retour en arrière. */
+  onApply: (fieldKey: string, text: string, previousValue: string) => void;
+}
+
+export interface RevertFieldButtonProps {
+  onPress: () => void;
 }

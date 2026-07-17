@@ -47,8 +47,25 @@ function isRewriteRequestBody(value: unknown): value is RewriteRequestBody {
   );
 }
 
-/** Reconstruit le contexte du roman (bible + contexte spécifique fourni par le client) pour une réécriture fidèle à l'univers. */
+/**
+ * Reconstruit le contexte du roman (bible + contexte spécifique fourni par le client) pour une
+ * réécriture ou, si le champ est vide, une génération depuis zéro à partir du contexte et de l'instruction.
+ */
 function buildPrompt(body: RewriteRequestBody): string {
+  const isEmpty = !body.content.trim();
+  const task = isEmpty
+    ? `Le champ ci-dessous est actuellement vide. Rédige son contenu à partir du contexte donné plus haut et de l'instruction suivante.
+
+Instruction : ${body.instruction || 'complète ce champ de façon cohérente avec le reste du profil/contexte'}`
+    : `Réécris le passage ci-dessous en respectant scrupuleusement le ton et les éléments décrits plus haut.
+
+Instruction de réécriture : ${body.instruction || 'améliorer le style tout en gardant le sens'}
+
+Passage à réécrire :
+"""
+${body.content}
+"""`;
+
   return `Contexte du roman :
 Genre : ${body.genre}
 Ton : ${body.bible.tone}
@@ -59,14 +76,9 @@ Règles du monde : ${body.bible.worldRules}
 
 ${body.context}
 
-Instruction de réécriture : ${body.instruction || 'améliorer le style tout en gardant le sens'}
+${task}
 
-Passage à réécrire :
-"""
-${body.content}
-"""
-
-Réécris ce passage en respectant scrupuleusement le ton et les éléments décrits ci-dessus. Réponds uniquement avec le texte réécrit, sans commentaire ni guillemets.`;
+Réponds uniquement avec le texte ${isEmpty ? 'rédigé' : 'réécrit'}, sans commentaire ni guillemets.`;
 }
 
 export default {
@@ -88,8 +100,8 @@ export default {
     if (!isRewriteRequestBody(body)) {
       return jsonResponse({ error: 'Champs requis manquants (content, instruction, bible, context).' }, 400);
     }
-    if (!body.content.trim()) {
-      return jsonResponse({ error: 'Le passage à réécrire est vide.' }, 400);
+    if (!body.content.trim() && !body.instruction.trim()) {
+      return jsonResponse({ error: 'Champ vide et aucune instruction fournie pour le générer.' }, 400);
     }
 
     const geminiResponse = await fetch(GEMINI_ENDPOINT, {

@@ -10,6 +10,7 @@ import type { Scene } from '@/types/writing.types';
 import { ARC_COLORS, createMainArc, MAIN_ARC_ID } from '../../book-defaults';
 import { useBooksStore } from '../../books-store';
 import { useBookCollection } from '../../hooks/use-book-collection';
+import { useFocusSelection } from '../../hooks/use-focus-selection';
 import { createSceneFromEvent } from '../../writing/scene-factory';
 import { LabeledField } from '../shared/LabeledField';
 import { MasterDetail } from '../shared/MasterDetail';
@@ -33,12 +34,12 @@ function createEvent(order: number): TimelineEvent {
 }
 
 /** Timeline du livre — liste ordonnée d'événements clés, regroupés par arcs narratifs, avec une vue graphique. */
-export function TimelineSection({ book, onOpenScene }: TimelineSectionProps) {
+export function TimelineSection({ book, onOpenScene, focusEventId, onFocusConsumed }: TimelineSectionProps) {
   const theme = useTheme();
   const updateBook = useBooksStore((state) => state.updateBook);
   const [view, setView] = useState<'list' | 'graph'>('list');
   const [managingArcs, setManagingArcs] = useState(false);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useFocusSelection(focusEventId, onFocusConsumed);
 
   const arcs = book.arcs.length > 0 ? book.arcs : [createMainArc()];
   const sortedEvents = [...book.timeline].sort((a, b) => a.order - b.order);
@@ -125,6 +126,13 @@ export function TimelineSection({ book, onOpenScene }: TimelineSectionProps) {
     <View style={styles.container}>
       <View style={styles.toolbar}>
         <Pressable
+          onPress={() => setSelectedEventId(handleAdd().id)}
+          style={[styles.addButton, { backgroundColor: ACCENT_COLOR }]}
+        >
+          <Plus size={14} color="#ffffff" />
+          <Text style={styles.addButtonLabel}>Nouvel événement</Text>
+        </Pressable>
+        <Pressable
           onPress={() => setManagingArcs((v) => !v)}
           style={[styles.arcsToggle, { borderColor: theme.border }, managingArcs && { backgroundColor: theme.text }]}
         >
@@ -134,13 +142,6 @@ export function TimelineSection({ book, onOpenScene }: TimelineSectionProps) {
           </Text>
         </Pressable>
 
-        <Pressable
-          onPress={() => setSelectedEventId(handleAdd().id)}
-          style={[styles.addButton, { backgroundColor: ACCENT_COLOR }]}
-        >
-          <Plus size={14} color="#ffffff" />
-          <Text style={styles.addButtonLabel}>Nouvel événement</Text>
-        </Pressable>
 
         <View style={[styles.viewSwitch, { borderColor: theme.border }]}>
           <Pressable

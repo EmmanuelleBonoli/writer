@@ -3,9 +3,10 @@ import type { ReactNode } from 'react';
 import type { SharedValue } from 'react-native-reanimated';
 
 import type { Character } from './character.types';
+import type { Note } from './note.types';
 import type { Place } from './place.types';
 import type { Arc, TimelineEvent } from './timeline.types';
-import type { Scene } from './writing.types';
+import type { Chapter, Scene } from './writing.types';
 
 export type BookGenre =
   | 'Roman'
@@ -33,7 +34,9 @@ export interface Book {
   places: Place[];
   timeline: TimelineEvent[];
   arcs: Arc[];
+  chapters: Chapter[];
   scenes: Scene[];
+  notes: Note[];
 }
 
 /** Position et dimensions d'une couverture mesurées dans la fenêtre, point de départ de l'animation d'ouverture. */
@@ -44,7 +47,7 @@ export interface BookRect {
   height: number;
 }
 
-export type BookSectionId = 'bible' | 'characters' | 'places' | 'timeline' | 'writing' | 'export';
+export type BookSectionId = 'bible' | 'characters' | 'places' | 'timeline' | 'writing' | 'notes' | 'export';
 
 export interface BookSectionConfig {
   id: BookSectionId;
@@ -114,6 +117,9 @@ export interface BookDetailMenuProps {
   activeSection: BookSectionId;
   onSelectSection: (id: BookSectionId) => void;
   onBack: () => void;
+  onSearch: () => void;
+  /** La recherche est actuellement affichée — met en avant son onglet et neutralise celui de la section en dessous. */
+  searchActive: boolean;
 }
 
 export interface AddBookCardProps {

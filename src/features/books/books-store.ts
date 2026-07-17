@@ -6,10 +6,16 @@ import type { Book } from '@/types/book.types';
 import { createMainArc, EMPTY_BIBLE } from './book-defaults';
 import { createDebouncedAsyncStorage } from './local-storage';
 import { mockBooks } from './mock-data';
+import { sanitizeBook } from './sanitize-book';
 
 interface BooksState {
   books: Book[];
-  addBook: (data: Omit<Book, 'id' | 'createdAt' | 'bible' | 'characters' | 'places' | 'timeline' | 'arcs' | 'scenes'>) => Book;
+  addBook: (
+    data: Omit<
+      Book,
+      'id' | 'createdAt' | 'bible' | 'characters' | 'places' | 'timeline' | 'arcs' | 'chapters' | 'scenes' | 'notes'
+    >,
+  ) => Book;
   /** Ajoute un livre importé depuis une sauvegarde JSON (nouvel id pour éviter toute collision avec un livre existant). */
   importBook: (book: Book) => Book;
   deleteBook: (id: string) => void;
@@ -32,14 +38,16 @@ export const useBooksStore = create<BooksState>()(
           places: [],
           timeline: [],
           arcs: [createMainArc()],
+          chapters: [],
           scenes: [],
+          notes: [],
         };
         set((state) => ({ books: [...state.books, book] }));
         return book;
       },
 
       importBook: (book) => {
-        const imported: Book = { ...book, id: `book_${Date.now()}` };
+        const imported: Book = { ...sanitizeBook(book), id: `book_${Date.now()}` };
         set((state) => ({ books: [...state.books, imported] }));
         return imported;
       },
@@ -48,14 +56,18 @@ export const useBooksStore = create<BooksState>()(
         set((state) => ({ books: state.books.filter((book) => book.id !== id) }));
       },
 
+      /** Chaque mutation repasse par `sanitizeBook` : les références vers un élément supprimé (personnage, lieu...) sont nettoyées automatiquement, sans intervention de l'utilisateur. */
       updateBook: (id, updater) => {
-        set((state) => ({ books: state.books.map((book) => (book.id === id ? updater(book) : book)) }));
+        set((state) => ({
+          books: state.books.map((book) => (book.id === id ? sanitizeBook(updater(book)) : book)),
+        }));
       },
     }),
     {
       name: 'writer-books-store',
       storage: createJSONStorage(() => createDebouncedAsyncStorage()),
       partialize: (state) => ({ books: state.books }),
+      version: 1,
     },
   ),
 );

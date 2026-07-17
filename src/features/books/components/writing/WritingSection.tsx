@@ -1,51 +1,75 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
-import { ChevronDown, ChevronUp, Mic, Plus, Square, Download } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { BookOpen, ChevronDown, ChevronUp, Mic, Plus, Square, Download } from 'lucide-react-native';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import type { Scene, WritingSectionProps } from '@/types/writing.types';
+import type { Chapter, Scene, WritingSectionProps } from '@/types/writing.types';
 
 import { extractTextFromDocx } from '../../docx-import';
+import { groupScenesByChapter, flattenSceneGroups, UNASSIGNED_CHAPTER_KEY } from '../../writing/chapter-grouping';
 import { useBookCollection } from '../../hooks/use-book-collection';
+import { useFocusSelection } from '../../hooks/use-focus-selection';
+import { useRevertableField } from '../../hooks/use-revertable-field';
 import { rewriteSceneWithAi } from '../../writing/ai-rewrite';
 import { applyEventToScene, createScene } from '../../writing/scene-factory';
 import { withAlineaIndent } from '../../writing/text-formatting';
+import { wordCount } from '../../writing/word-count';
 import { AiRewritePanel } from '../shared/AiRewritePanel';
 import { CheckableDropdown } from '../shared/CheckableDropdown';
 import { LabeledField } from '../shared/LabeledField';
 import { MasterDetail } from '../shared/MasterDetail';
+import { TagChips } from '../shared/TagChips';
+import { ChapterManager } from './ChapterManager';
 
 const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 const ACCENT_COLOR = '#0D9488';
 
-function wordCount(content: string): number {
-  const trimmed = content.trim();
-  return trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
+function createChapter(order: number): Chapter {
+  return { id: `chapter_${Date.now()}`, title: `Chapitre ${order + 1}`, order };
 }
 
-/** Rédaction du livre — scènes ordonnées, reliables à des personnages, des lieux et un événement de la timeline. */
+/** Rédaction du livre — scènes groupées par chapitre, reliables à des personnages, des lieux et un événement de la timeline. */
 export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingSectionProps) {
   const theme = useTheme();
-  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
+  const [selectedSceneId, setSelectedSceneId] = useFocusSelection(focusSceneId, onFocusConsumed);
   const [importingSceneId, setImportingSceneId] = useState<string | null>(null);
   const [dictatingSceneId, setDictatingSceneId] = useState<string | null>(null);
+  const [chapterFilter, setChapterFilter] = useState<string>('');
+  const [managingChapters, setManagingChapters] = useState(false);
   const dictationBaseRef = useRef('');
 
-  const sortedScenes = [...book.scenes].sort((a, b) => a.order - b.order);
   const sortedEvents = [...book.timeline].sort((a, b) => a.order - b.order);
+  const sortedChapters = [...book.chapters].sort((a, b) => a.order - b.order);
 
-  useEffect(() => {
-    if (focusSceneId) {
-      setSelectedSceneId(focusSceneId);
-      onFocusConsumed();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusSceneId]);
+  const sceneGroups = groupScenesByChapter(book.scenes, book.chapters);
+  const unassignedScenes = sceneGroups.find((group) => group.chapter === null)?.scenes ?? [];
+
+  /** Retombe sur le premier chapitre si le filtre en cours pointe vers un chapitre supprimé (ou n'a jamais été choisi). */
+  const effectiveChapterFilter =
+    chapterFilter === UNASSIGNED_CHAPTER_KEY || sortedChapters.some((c) => c.id === chapterFilter)
+      ? chapterFilter
+      : (sortedChapters[0]?.id ?? UNASSIGNED_CHAPTER_KEY);
+
+  /**
+   * Scènes affichées : quand des chapitres existent, seules celles du chapitre
+   * actuellement sélectionné via les chips sont montrées, pour ne pas noyer la liste dans un roman
+   * qui compte beaucoup de scènes.
+   */
+  const displayedScenes =
+    sortedChapters.length === 0
+      ? flattenSceneGroups(sceneGroups)
+      : (sceneGroups.find((group) => (group.chapter?.id ?? UNASSIGNED_CHAPTER_KEY) === effectiveChapterFilter)?.scenes ?? []);
+
+  /** Position (et taille du groupe) de chaque scène au sein de son propre chapitre, pour le réordonnancement et les flèches. */
+  const sceneGroupInfo = new Map<string, { scenes: Scene[]; indexInGroup: number }>();
+  for (const group of sceneGroups) {
+    group.scenes.forEach((scene, indexInGroup) => sceneGroupInfo.set(scene.id, { scenes: group.scenes, indexInGroup }));
+  }
 
   const { setField, patchItem, toggleInField, add, remove, move } = useBookCollection<Scene>(
     book,
@@ -53,16 +77,37 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
     (b, scenes) => ({ ...b, scenes }),
   );
 
+  const {
+    patchItem: patchChapter,
+    add: addChapterItem,
+    remove: removeChapterItem,
+    move: moveChapterItems,
+  } = useBookCollection<Chapter>(
+    book,
+    (b) => b.chapters,
+    (b, chapters) => ({ ...b, chapters }),
+  );
+
+  const { remember, renderRevertButton } = useRevertableField<'content'>(setField);
+
+  /** Nouvelle scène créée dans le chapitre actuellement affiché (ou sans chapitre, si aucun n'est sélectionné). */
   const handleAdd = () => {
-    const scene = createScene(sortedScenes.length);
+    const targetChapterId = sortedChapters.length > 0 && effectiveChapterFilter !== UNASSIGNED_CHAPTER_KEY ? effectiveChapterFilter : null;
+    const targetScenes = targetChapterId
+      ? (sceneGroups.find((group) => group.chapter?.id === targetChapterId)?.scenes ?? [])
+      : unassignedScenes;
+    const scene = { ...createScene(targetScenes.length), chapterId: targetChapterId };
     add(scene);
     return scene;
   };
 
   const handleDelete = (id: string) => remove(id);
 
-  const moveScene = (id: string, direction: -1 | 1) =>
-    move(sortedScenes, id, direction, (scene, i) => ({ ...scene, order: i }));
+  const moveScene = (scene: Scene, direction: -1 | 1) => {
+    const info = sceneGroupInfo.get(scene.id);
+    if (!info) return;
+    move(info.scenes, scene.id, direction, (s, i) => ({ ...s, order: i }));
+  };
 
   const toggleCharacter = (scene: Scene, characterId: string) => toggleInField(scene.id, 'characterIds', characterId);
 
@@ -78,6 +123,21 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
     if (!event) return;
     patchItem(scene.id, { timelineEventId: eventId, ...applyEventToScene(scene, event) });
   };
+
+  /** Range (ou sort) une scène d'un chapitre ; en cas de rangement, la place à la fin du chapitre cible. */
+  const assignChapter = (scene: Scene, chapterId: string) => {
+    if (scene.chapterId === chapterId) {
+      patchItem(scene.id, { chapterId: null });
+      return;
+    }
+    const targetScenes = sceneGroups.find((group) => group.chapter?.id === chapterId)?.scenes ?? [];
+    patchItem(scene.id, { chapterId, order: targetScenes.length });
+  };
+
+  const handleAddChapter = () => addChapterItem(createChapter(sortedChapters.length));
+
+  const moveChapter = (id: string, direction: -1 | 1) =>
+    moveChapterItems(sortedChapters, id, direction, (chapter, i) => ({ ...chapter, order: i }));
 
   const handleImportDocx = async (scene: Scene) => {
     const result = await DocumentPicker.getDocumentAsync({ type: DOCX_MIME_TYPE });
@@ -144,13 +204,55 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
           <Plus size={14} color="#ffffff" />
           <Text style={styles.addButtonLabel}>Nouvelle scène</Text>
         </Pressable>
+
+        <Pressable
+          onPress={() => setManagingChapters((v) => !v)}
+          style={[
+            styles.chaptersToggle,
+            { borderColor: theme.border },
+            managingChapters && { backgroundColor: theme.text },
+          ]}
+        >
+          <BookOpen size={14} color={managingChapters ? theme.background : theme.text} />
+          <Text style={[styles.chaptersToggleLabel, { color: managingChapters ? theme.background : theme.text }]}>
+            Chapitres
+          </Text>
+        </Pressable>
       </View>
 
+      {managingChapters && (
+        <ChapterManager
+          chapters={book.chapters}
+          scenes={book.scenes}
+          onAdd={handleAddChapter}
+          onUpdate={patchChapter}
+          onDelete={removeChapterItem}
+          onMove={moveChapter}
+        />
+      )}
+
+      {sortedChapters.length > 0 && (
+        <View style={styles.chapterFilterRow}>
+          <TagChips
+            options={[
+              ...sortedChapters.map((c) => ({ id: c.id, label: c.title || 'Sans titre' })),
+              { id: UNASSIGNED_CHAPTER_KEY, label: 'Sans chapitre' },
+            ]}
+            selectedIds={[effectiveChapterFilter]}
+            onToggle={setChapterFilter}
+          />
+        </View>
+      )}
+
       <MasterDetail
-        items={sortedScenes}
+        items={displayedScenes}
         accentColor={ACCENT_COLOR}
         addLabel="Nouvelle scène"
-        emptyLabel="Aucune scène pour l'instant. Créez la première pour commencer votre rédaction."
+        emptyLabel={
+          sortedChapters.length > 0
+            ? 'Aucune scène dans ce chapitre pour l\'instant.'
+            : "Aucune scène pour l'instant. Créez la première pour commencer votre rédaction."
+        }
         onAdd={handleAdd}
         onDelete={handleDelete}
         selectedId={selectedSceneId}
@@ -165,18 +267,31 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
             </Text>
           </>
         )}
-        renderCardAccessory={(scene, index) => (
-          <View style={styles.reorderButtons}>
-            <Pressable onPress={() => moveScene(scene.id, -1)} disabled={index === 0} hitSlop={6}>
-              <ChevronUp size={16} color={index === 0 ? theme.border : theme.textSecondary} />
-            </Pressable>
-            <Pressable onPress={() => moveScene(scene.id, 1)} disabled={index === sortedScenes.length - 1} hitSlop={6}>
-              <ChevronDown size={16} color={index === sortedScenes.length - 1 ? theme.border : theme.textSecondary} />
-            </Pressable>
-          </View>
-        )}
+        renderCardAccessory={(scene) => {
+          const info = sceneGroupInfo.get(scene.id);
+          const indexInGroup = info?.indexInGroup ?? 0;
+          const groupLength = info?.scenes.length ?? 1;
+          return (
+            <View style={styles.reorderButtons}>
+              <Pressable onPress={() => moveScene(scene, -1)} disabled={indexInGroup === 0} hitSlop={6}>
+                <ChevronUp size={16} color={indexInGroup === 0 ? theme.border : theme.textSecondary} />
+              </Pressable>
+              <Pressable onPress={() => moveScene(scene, 1)} disabled={indexInGroup === groupLength - 1} hitSlop={6}>
+                <ChevronDown size={16} color={indexInGroup === groupLength - 1 ? theme.border : theme.textSecondary} />
+              </Pressable>
+            </View>
+          );
+        }}
         renderDetail={(scene) => (
           <View>
+            <CheckableDropdown
+              label="Chapitre"
+              options={sortedChapters.map((c) => ({ id: c.id, label: c.title || 'Sans titre' }))}
+              selectedIds={scene.chapterId ? [scene.chapterId] : []}
+              onToggle={(id) => assignChapter(scene, id)}
+              placeholder="Sans chapitre"
+            />
+
             <CheckableDropdown
               label="Événement de la timeline"
               options={sortedEvents.map((e) => ({ id: e.id, label: e.title || 'Sans titre' }))}
@@ -216,6 +331,7 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
               multiline
               numberOfLines={12}
             />
+            {renderRevertButton(scene.id, 'content')}
 
             <View style={styles.actionsRow}>
               <Pressable
@@ -257,7 +373,10 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
               title="Réécriture assistée par IA — utilise la bible, les personnages et le lieu tagués ci-dessus"
               fields={[{ key: 'content', label: 'Texte', value: scene.content }]}
               rewrite={(_fieldKey, _content, instruction) => rewriteSceneWithAi({ book, scene, instruction })}
-              onApply={(_fieldKey, text) => setField(scene.id, 'content', text)}
+              onApply={(_fieldKey, text, previousValue) => {
+                remember(scene.id, 'content', previousValue);
+                setField(scene.id, 'content', text);
+              }}
             />
           </View>
         )}
@@ -288,6 +407,22 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '700',
+  },
+  chaptersToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    borderWidth: 1,
+    borderRadius: Radii.card,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  chaptersToggleLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  chapterFilterRow: {
+    marginBottom: Spacing.three,
   },
   cardTitle: {
     fontSize: 15,

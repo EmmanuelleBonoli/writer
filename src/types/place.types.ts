@@ -9,4 +9,7 @@ export interface Place {
 
 export interface PlacesSectionProps {
   book: Book;
+  /** Lieu à ouvrir directement à l'arrivée sur l'onglet (ex. depuis un résultat de recherche). */
+  focusPlaceId: string | null;
+  onFocusConsumed: () => void;
 }

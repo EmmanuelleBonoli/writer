@@ -5,6 +5,8 @@ import { useTheme } from '@/hooks/use-theme';
 import type { Character, CharactersSectionProps } from '@/types/character.types';
 
 import { useBookCollection } from '../../hooks/use-book-collection';
+import { useFocusSelection } from '../../hooks/use-focus-selection';
+import { useRevertableField } from '../../hooks/use-revertable-field';
 import { rewriteCharacterFieldWithAi } from '../../writing/ai-rewrite';
 import { AiRewritePanel } from '../shared/AiRewritePanel';
 import { LabeledField } from '../shared/LabeledField';
@@ -26,13 +28,15 @@ function createCharacter(): Character {
 }
 
 /** Fiches des personnages du livre — galerie + fiche détaillée, sur le même gabarit que les Lieux. */
-export function CharactersSection({ book }: CharactersSectionProps) {
+export function CharactersSection({ book, focusCharacterId, onFocusConsumed }: CharactersSectionProps) {
   const theme = useTheme();
+  const [selectedCharacterId, setSelectedCharacterId] = useFocusSelection(focusCharacterId, onFocusConsumed);
   const { setField, add, remove } = useBookCollection<Character>(
     book,
     (b) => b.characters,
     (b, characters) => ({ ...b, characters }),
   );
+  const { remember, renderRevertButton } = useRevertableField<keyof Character>(setField);
 
   const handleAdd = () => {
     const character = createCharacter();
@@ -50,6 +54,8 @@ export function CharactersSection({ book }: CharactersSectionProps) {
       emptyLabel="Aucun personnage pour l'instant. Créez la première fiche pour commencer."
       onAdd={handleAdd}
       onDelete={handleDelete}
+      selectedId={selectedCharacterId}
+      onSelectId={setSelectedCharacterId}
       renderCard={(character) => (
         <>
           <Text style={[styles.cardTitle, { color: theme.text }]}>{character.name || 'Sans nom'}</Text>
@@ -78,6 +84,7 @@ export function CharactersSection({ book }: CharactersSectionProps) {
             multiline
             numberOfLines={4}
           />
+          {renderRevertButton(character.id, 'appearance')}
           <LabeledField
             label="Psychologie (traits, peurs, désirs)"
             value={character.psychology}
@@ -85,6 +92,7 @@ export function CharactersSection({ book }: CharactersSectionProps) {
             multiline
             numberOfLines={4}
           />
+          {renderRevertButton(character.id, 'psychology')}
           <LabeledField
             label="Arc narratif"
             value={character.arc}
@@ -92,6 +100,7 @@ export function CharactersSection({ book }: CharactersSectionProps) {
             multiline
             numberOfLines={4}
           />
+          {renderRevertButton(character.id, 'arc')}
           <LabeledField
             label="Relations avec les autres personnages"
             value={character.relations}
@@ -99,6 +108,7 @@ export function CharactersSection({ book }: CharactersSectionProps) {
             multiline
             numberOfLines={4}
           />
+          {renderRevertButton(character.id, 'relations')}
           <LabeledField
             label="Voix / façon de parler"
             value={character.voice}
@@ -107,6 +117,7 @@ export function CharactersSection({ book }: CharactersSectionProps) {
             multiline
             numberOfLines={3}
           />
+          {renderRevertButton(character.id, 'voice')}
 
           <AiRewritePanel
             key={character.id}
@@ -121,7 +132,10 @@ export function CharactersSection({ book }: CharactersSectionProps) {
             rewrite={(fieldKey, content, instruction) =>
               rewriteCharacterFieldWithAi({ book, character, fieldKey, content, instruction })
             }
-            onApply={(fieldKey, text) => setField(character.id, fieldKey as keyof Character, text)}
+            onApply={(fieldKey, text, previousValue) => {
+              remember(character.id, fieldKey, previousValue);
+              setField(character.id, fieldKey as keyof Character, text);
+            }}
           />
         </View>
       )}

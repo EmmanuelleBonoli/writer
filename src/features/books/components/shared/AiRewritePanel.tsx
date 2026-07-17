@@ -1,6 +1,6 @@
 import { Check, RotateCcw, Sparkles } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -17,17 +17,22 @@ export function AiRewritePanel({ title, fields, rewrite, onApply }: AiRewritePan
   const [instruction, setInstruction] = useState('');
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [isRewriting, setIsRewriting] = useState(false);
+  /** Affiché dans le panneau plutôt que via `Alert.alert`, qui ne s'affiche pas de façon fiable sur le web. */
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const selectedField = fields.find((field) => field.key === selectedFieldKey) ?? fields[0];
 
   const handleSelectField = (fieldKey: string) => {
     setSelectedFieldKey(fieldKey);
     setSuggestion(null);
+    setErrorMessage(null);
   };
 
   const handleRewrite = async () => {
-    if (!selectedField || !selectedField.value.trim()) {
-      Alert.alert('Champ vide', "Remplissez d'abord le champ à réécrire.");
+    setErrorMessage(null);
+    if (!selectedField) return;
+    if (!selectedField.value.trim() && !instruction.trim()) {
+      setErrorMessage('Ajoutez une instruction pour générer ce champ vide (ex. "à partir du reste du profil").');
       return;
     }
     setIsRewriting(true);
@@ -36,7 +41,7 @@ export function AiRewritePanel({ title, fields, rewrite, onApply }: AiRewritePan
       setSuggestion(text);
     } catch (error) {
       console.error('Échec de la réécriture IA :', error);
-      Alert.alert('Réécriture impossible', error instanceof Error ? error.message : 'Une erreur est survenue.');
+      setErrorMessage(error instanceof Error ? error.message : 'Une erreur est survenue.');
     } finally {
       setIsRewriting(false);
     }
@@ -44,7 +49,7 @@ export function AiRewritePanel({ title, fields, rewrite, onApply }: AiRewritePan
 
   const handleApply = () => {
     if (!suggestion || !selectedField) return;
-    onApply(selectedField.key, suggestion);
+    onApply(selectedField.key, suggestion, selectedField.value);
     setSuggestion(null);
   };
 
@@ -68,7 +73,7 @@ export function AiRewritePanel({ title, fields, rewrite, onApply }: AiRewritePan
         <TextInput
           value={instruction}
           onChangeText={setInstruction}
-          placeholder='ex : "plus intense émotionnellement", "resserrer"…'
+          placeholder='ex : "plus intense émotionnellement", ou "complète à partir du reste du profil" si le champ est vide…'
           placeholderTextColor={theme.textSecondary}
           style={[styles.input, { color: theme.text, borderColor: theme.border }]}
         />
@@ -78,9 +83,11 @@ export function AiRewritePanel({ title, fields, rewrite, onApply }: AiRewritePan
           style={[styles.rewriteButton, { backgroundColor: ACCENT_COLOR, opacity: isRewriting ? 0.7 : 1 }]}
         >
           {isRewriting ? <ActivityIndicator size="small" color="#ffffff" /> : <Sparkles size={14} color="#ffffff" />}
-          <Text style={styles.rewriteButtonLabel}>Réécrire</Text>
+          <Text style={styles.rewriteButtonLabel}>{selectedField.value.trim() ? 'Réécrire' : 'Générer'}</Text>
         </Pressable>
       </View>
+
+      {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
 
       {suggestion && (
         <View style={[styles.suggestionBox, { borderColor: theme.border }]}>
@@ -138,6 +145,11 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '700',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 12,
+    marginTop: Spacing.two,
   },
   suggestionBox: {
     marginTop: Spacing.three,

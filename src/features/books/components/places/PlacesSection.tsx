@@ -5,6 +5,8 @@ import { useTheme } from '@/hooks/use-theme';
 import type { Place, PlacesSectionProps } from '@/types/place.types';
 
 import { useBookCollection } from '../../hooks/use-book-collection';
+import { useFocusSelection } from '../../hooks/use-focus-selection';
+import { useRevertableField } from '../../hooks/use-revertable-field';
 import { rewritePlaceFieldWithAi } from '../../writing/ai-rewrite';
 import { AiRewritePanel } from '../shared/AiRewritePanel';
 import { LabeledField } from '../shared/LabeledField';
@@ -22,13 +24,15 @@ function createPlace(): Place {
 }
 
 /** Fiches des lieux de l'univers du livre — galerie + fiche détaillée, sur le même gabarit que les Personnages. */
-export function PlacesSection({ book }: PlacesSectionProps) {
+export function PlacesSection({ book, focusPlaceId, onFocusConsumed }: PlacesSectionProps) {
   const theme = useTheme();
+  const [selectedPlaceId, setSelectedPlaceId] = useFocusSelection(focusPlaceId, onFocusConsumed);
   const { setField, add, remove } = useBookCollection<Place>(
     book,
     (b) => b.places,
     (b, places) => ({ ...b, places }),
   );
+  const { remember, renderRevertButton } = useRevertableField<keyof Place>(setField);
 
   const handleAdd = () => {
     const place = createPlace();
@@ -46,6 +50,8 @@ export function PlacesSection({ book }: PlacesSectionProps) {
       emptyLabel="Aucun lieu pour l'instant. Créez la première fiche pour commencer."
       onAdd={handleAdd}
       onDelete={handleDelete}
+      selectedId={selectedPlaceId}
+      onSelectId={setSelectedPlaceId}
       renderCard={(place) => (
         <>
           <Text style={[styles.cardTitle, { color: theme.text }]}>{place.name || 'Sans nom'}</Text>
@@ -65,6 +71,7 @@ export function PlacesSection({ book }: PlacesSectionProps) {
             multiline
             numberOfLines={5}
           />
+          {renderRevertButton(place.id, 'description')}
           <LabeledField
             label="Fonction narrative"
             value={place.function}
@@ -73,6 +80,7 @@ export function PlacesSection({ book }: PlacesSectionProps) {
             multiline
             numberOfLines={5}
           />
+          {renderRevertButton(place.id, 'function')}
 
           <AiRewritePanel
             key={place.id}
@@ -82,7 +90,10 @@ export function PlacesSection({ book }: PlacesSectionProps) {
               { key: 'function', label: 'Fonction narrative', value: place.function },
             ]}
             rewrite={(fieldKey, content, instruction) => rewritePlaceFieldWithAi({ book, place, fieldKey, content, instruction })}
-            onApply={(fieldKey, text) => setField(place.id, fieldKey as keyof Place, text)}
+            onApply={(fieldKey, text, previousValue) => {
+              remember(place.id, fieldKey, previousValue);
+              setField(place.id, fieldKey as keyof Place, text);
+            }}
           />
         </View>
       )}

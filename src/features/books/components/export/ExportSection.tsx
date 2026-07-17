@@ -196,17 +196,19 @@ export function ExportSection({ book }: ExportSectionProps) {
           </Pressable>
         </View>
 
-        {EXPORTABLE_SECTIONS.map((section) => {
-          const checked = selectedSections.has(section.id);
-          return (
-            <Pressable key={section.id} onPress={() => toggleSection(section.id)} style={styles.sectionRow}>
-              <View style={[styles.checkbox, { borderColor: section.color }, checked && { backgroundColor: section.color }]}>
-                {checked && <Check size={12} color="#ffffff" />}
-              </View>
-              <Text style={[styles.sectionLabel, { color: theme.text }]}>{section.label}</Text>
-            </Pressable>
-          );
-        })}
+        <View style={styles.sectionsGrid}>
+          {EXPORTABLE_SECTIONS.map((section) => {
+            const checked = selectedSections.has(section.id);
+            return (
+              <Pressable key={section.id} onPress={() => toggleSection(section.id)} style={styles.sectionRow}>
+                <View style={[styles.checkbox, { borderColor: section.color }, checked && { backgroundColor: section.color }]}>
+                  {checked && <Check size={12} color="#ffffff" />}
+                </View>
+                <Text style={[styles.sectionLabel, { color: theme.text }]}>{section.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       <Pressable
@@ -295,10 +297,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  sectionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
   sectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
+    width: '50%',
     paddingVertical: Spacing.two,
   },
   checkbox: {

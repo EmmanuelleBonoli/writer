@@ -2,9 +2,10 @@ import type { Book } from '@/types/book.types';
 import type { ExportableSectionId } from '@/types/export.types';
 
 import { BOOK_SECTIONS } from '../book-sections';
+import { groupScenesByChapter } from '../writing/chapter-grouping';
 import { buildTimelineSvgMarkup } from './build-timeline-svg';
 
-const SECTION_ORDER: ExportableSectionId[] = ['bible', 'characters', 'places', 'timeline', 'writing'];
+const SECTION_ORDER: ExportableSectionId[] = ['bible', 'characters', 'places', 'timeline', 'writing', 'notes'];
 
 const EXPORT_CSS = `
   * { box-sizing: border-box; }
@@ -42,6 +43,9 @@ const EXPORT_CSS = `
   .scene-link-title { font-size: 12px; font-weight: 700; }
   .scene-link-desc { font-size: 11px; color: #60646C; font-style: italic; }
   .scene-text { font-size: 13px; line-height: 1.6; white-space: pre-wrap; tab-size: 2; -moz-tab-size: 2; }
+  .chapter-heading { font-size: 20px; font-weight: 700; margin: 24px 0 16px; }
+  .toc-title { font-size: 24px; font-weight: 700; margin-bottom: 20px; }
+  .toc-entry { font-size: 14px; margin-bottom: 10px; }
   .scene-separator { text-align: center; color: #C7C9D1; letter-spacing: 10px; margin: 24px 0; }
   .empty-hint { font-size: 13px; color: #60646C; font-style: italic; }
   .timeline-image { width: 100%; }
@@ -126,28 +130,64 @@ function buildTimelineSection(book: Book): string {
   return `<div class="page">${sectionHeader('timeline')}<div class="timeline-image">${svg}</div></div>`;
 }
 
+function buildSceneHtml(book: Book, scene: Book['scenes'][number], isFirstInGroup: boolean): string {
+  const event = scene.timelineEventId ? (book.timeline.find((e) => e.id === scene.timelineEventId) ?? null) : null;
+  const arc = event ? (book.arcs.find((a) => a.id === event.arcId) ?? null) : null;
+  const linkHtml = event
+    ? `<div class="scene-link" style="border-color:${arc?.color ?? '#C7C9D1'}">
+        <div class="scene-link-title">${escapeHtml(event.title || 'Sans titre')}</div>
+        ${event.description ? `<div class="scene-link-desc">${escapeHtml(event.description)}</div>` : ''}
+      </div>`
+    : '';
+  const separator = isFirstInGroup ? '' : '<div class="scene-separator">· · ·</div>';
+  return `${separator}
+    <div class="scene">
+      <div class="scene-title">${escapeHtml(scene.title || 'Sans titre')}</div>
+      ${linkHtml}
+      <div class="scene-text">${escapeHtml(scene.content)}</div>
+    </div>`;
+}
+
 function buildWritingSection(book: Book): string {
-  const sortedScenes = [...book.scenes].sort((a, b) => a.order - b.order);
-  const scenesHtml = sortedScenes
-    .map((scene, index) => {
-      const event = scene.timelineEventId ? (book.timeline.find((e) => e.id === scene.timelineEventId) ?? null) : null;
-      const arc = event ? (book.arcs.find((a) => a.id === event.arcId) ?? null) : null;
-      const linkHtml = event
-        ? `<div class="scene-link" style="border-color:${arc?.color ?? '#C7C9D1'}">
-            <div class="scene-link-title">${escapeHtml(event.title || 'Sans titre')}</div>
-            ${event.description ? `<div class="scene-link-desc">${escapeHtml(event.description)}</div>` : ''}
-          </div>`
+  const groups = groupScenesByChapter(book.scenes, book.chapters).filter((group) => group.scenes.length > 0);
+  if (groups.length === 0) {
+    return `<div class="page">${sectionHeader('writing')}${emptyHint('Aucune scène rédigée.')}</div>`;
+  }
+
+  const hasChapters = book.chapters.length > 0;
+  const scenesHtml = groups
+    .map((group) => {
+      const chapterHeading = hasChapters
+        ? `<div class="chapter-heading">${escapeHtml(group.chapter?.title || 'Sans chapitre')}</div>`
         : '';
-      const separator = index > 0 ? '<div class="scene-separator">· · ·</div>' : '';
-      return `${separator}
-        <div class="scene">
-          <div class="scene-title">${escapeHtml(scene.title || 'Sans titre')}</div>
-          ${linkHtml}
-          <div class="scene-text">${escapeHtml(scene.content)}</div>
-        </div>`;
+      const groupHtml = group.scenes.map((scene, index) => buildSceneHtml(book, scene, index === 0)).join('');
+      return `${chapterHeading}${groupHtml}`;
     })
     .join('');
-  return `<div class="page">${sectionHeader('writing')}${scenesHtml || emptyHint('Aucune scène rédigée.')}</div>`;
+  return `<div class="page">${sectionHeader('writing')}${scenesHtml}</div>`;
+}
+
+/** Sommaire statique (titres de chapitres dans l'ordre) — même contenu que l'export Word. */
+function buildTableOfContents(book: Book): string {
+  const sortedChapters = [...book.chapters].sort((a, b) => a.order - b.order);
+  const entries = sortedChapters
+    .map((chapter, index) => `<div class="toc-entry">${index + 1}. ${escapeHtml(chapter.title || 'Sans titre')}</div>`)
+    .join('');
+  return `<div class="page"><div class="toc-title">Table des matières</div>${entries}</div>`;
+}
+
+function buildNotesSection(book: Book): string {
+  const notes = book.notes ?? [];
+  const cards = notes
+    .map(
+      (note) => `
+      <div class="card">
+        <div class="card-name">${escapeHtml(note.title || 'Sans titre')}</div>
+        ${field('Contenu', note.content)}
+      </div>`,
+    )
+    .join('');
+  return `<div class="page">${sectionHeader('notes')}${cards || emptyHint('Aucune note.')}</div>`;
 }
 
 const SECTION_BUILDERS: Record<ExportableSectionId, (book: Book) => string> = {
@@ -156,6 +196,7 @@ const SECTION_BUILDERS: Record<ExportableSectionId, (book: Book) => string> = {
   places: buildPlacesSection,
   timeline: buildTimelineSection,
   writing: buildWritingSection,
+  notes: buildNotesSection,
 };
 
 /**
@@ -164,9 +205,11 @@ const SECTION_BUILDERS: Record<ExportableSectionId, (book: Book) => string> = {
  */
 export function buildExportHtml(book: Book, sections: ExportableSectionId[]): string {
   const selected = new Set(sections);
+  const includeToc = selected.has('writing') && book.chapters.length > 0;
+  const toc = includeToc ? buildTableOfContents(book) : '';
   const body = SECTION_ORDER.filter((id) => selected.has(id))
     .map((id) => SECTION_BUILDERS[id](book))
     .join('');
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8" /><style>${EXPORT_CSS}</style></head><body>${buildTitlePage(book)}${body}</body></html>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8" /><style>${EXPORT_CSS}</style></head><body>${buildTitlePage(book)}${toc}${body}</body></html>`;
 }

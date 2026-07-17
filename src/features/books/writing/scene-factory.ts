@@ -12,6 +12,7 @@ export function createScene(order: number): Scene {
     characterIds: [],
     placeIds: [],
     timelineEventId: null,
+    chapterId: null,
   };
 }
 
@@ -25,6 +26,7 @@ export function createSceneFromEvent(order: number, event: TimelineEvent): Scene
     characterIds: event.characterIds,
     placeIds: event.placeId ? [event.placeId] : [],
     timelineEventId: event.id,
+    chapterId: null,
   };
 }
 

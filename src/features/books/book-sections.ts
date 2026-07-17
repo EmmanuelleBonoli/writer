@@ -1,4 +1,4 @@
-import {BookOpen, Clock, MapPin, PenLine, Upload, Users} from 'lucide-react-native';
+import {BookOpen, Clock, MapPin, NotebookPen, PenLine, Upload, Users} from 'lucide-react-native';
 
 import type { BookSectionConfig } from '@/types/book.types';
 
@@ -38,6 +38,13 @@ export const BOOK_SECTIONS: BookSectionConfig[] = [
     icon: PenLine,
     color: '#0D9488',
     placeholder: 'Les scènes et chapitres de votre manuscrit.',
+  },
+  {
+    id: 'notes',
+    label: 'Notes',
+    icon: NotebookPen,
+    color: '#F97066',
+    placeholder: 'Idées en vrac, recherches, pistes à explorer.',
   },
   {
     id: 'export',

@@ -13,7 +13,9 @@ export const mockBooks: Book[] = [
     places: [],
     timeline: [],
     arcs: [createMainArc()],
+    chapters: [],
     scenes: [],
+    notes: [],
   },
   {
     id: 'book_2',
@@ -25,7 +27,9 @@ export const mockBooks: Book[] = [
     places: [],
     timeline: [],
     arcs: [createMainArc()],
+    chapters: [],
     scenes: [],
+    notes: [],
   },
   {
     id: 'book_3',
@@ -37,6 +41,8 @@ export const mockBooks: Book[] = [
     places: [],
     timeline: [],
     arcs: [createMainArc()],
+    chapters: [],
     scenes: [],
+    notes: [],
   },
 ];

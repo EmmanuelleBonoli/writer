@@ -26,6 +26,9 @@ export interface TimelineSectionProps {
   book: Book;
   /** Ouvre la scène reliée à un événement (bascule l'écran sur l'onglet Rédaction). */
   onOpenScene: (sceneId: string) => void;
+  /** Événement à ouvrir directement à l'arrivée sur l'onglet (ex. depuis un résultat de recherche). */
+  focusEventId: string | null;
+  onFocusConsumed: () => void;
 }
 
 export interface TimelineGraphViewProps {
