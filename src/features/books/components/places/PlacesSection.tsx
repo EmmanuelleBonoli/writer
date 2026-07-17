@@ -5,6 +5,8 @@ import { useTheme } from '@/hooks/use-theme';
 import type { Place, PlacesSectionProps } from '@/types/place.types';
 
 import { useBookCollection } from '../../hooks/use-book-collection';
+import { rewritePlaceFieldWithAi } from '../../writing/ai-rewrite';
+import { AiRewritePanel } from '../shared/AiRewritePanel';
 import { LabeledField } from '../shared/LabeledField';
 import { MasterDetail } from '../shared/MasterDetail';
 
@@ -70,6 +72,17 @@ export function PlacesSection({ book }: PlacesSectionProps) {
             placeholder="quels événements s'y déroulent, ce que le lieu symbolise…"
             multiline
             numberOfLines={5}
+          />
+
+          <AiRewritePanel
+            key={place.id}
+            title="Réécriture assistée par IA — choisissez le champ à réécrire"
+            fields={[
+              { key: 'description', label: 'Description', value: place.description },
+              { key: 'function', label: 'Fonction narrative', value: place.function },
+            ]}
+            rewrite={(fieldKey, content, instruction) => rewritePlaceFieldWithAi({ book, place, fieldKey, content, instruction })}
+            onApply={(fieldKey, text) => setField(place.id, fieldKey as keyof Place, text)}
           />
         </View>
       )}

@@ -47,3 +47,16 @@ export interface MasterDetailProps<T extends { id: string }> {
   /** Masque le bouton d'ajout interne, quand l'appelant en affiche un ailleurs (ex. barre d'outils toujours visible). */
   hideAddButton?: boolean;
 }
+
+export interface AiRewriteField {
+  key: string;
+  label: string;
+  value: string;
+}
+
+export interface AiRewritePanelProps {
+  title: string;
+  fields: AiRewriteField[];
+  rewrite: (fieldKey: string, content: string, instruction: string) => Promise<string>;
+  onApply: (fieldKey: string, text: string) => void;
+}

@@ -5,6 +5,8 @@ import { useTheme } from '@/hooks/use-theme';
 import type { Character, CharactersSectionProps } from '@/types/character.types';
 
 import { useBookCollection } from '../../hooks/use-book-collection';
+import { rewriteCharacterFieldWithAi } from '../../writing/ai-rewrite';
+import { AiRewritePanel } from '../shared/AiRewritePanel';
 import { LabeledField } from '../shared/LabeledField';
 import { MasterDetail } from '../shared/MasterDetail';
 
@@ -104,6 +106,22 @@ export function CharactersSection({ book }: CharactersSectionProps) {
             placeholder="tics de langage, niveau de langue, rythme de phrase…"
             multiline
             numberOfLines={3}
+          />
+
+          <AiRewritePanel
+            key={character.id}
+            title="Réécriture assistée par IA — choisissez le champ à réécrire"
+            fields={[
+              { key: 'appearance', label: 'Apparence', value: character.appearance },
+              { key: 'psychology', label: 'Psychologie', value: character.psychology },
+              { key: 'arc', label: 'Arc narratif', value: character.arc },
+              { key: 'relations', label: 'Relations', value: character.relations },
+              { key: 'voice', label: 'Voix', value: character.voice },
+            ]}
+            rewrite={(fieldKey, content, instruction) =>
+              rewriteCharacterFieldWithAi({ book, character, fieldKey, content, instruction })
+            }
+            onApply={(fieldKey, text) => setField(character.id, fieldKey as keyof Character, text)}
           />
         </View>
       )}

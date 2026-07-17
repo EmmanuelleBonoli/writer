@@ -11,8 +11,10 @@ import type { Scene, WritingSectionProps } from '@/types/writing.types';
 
 import { extractTextFromDocx } from '../../docx-import';
 import { useBookCollection } from '../../hooks/use-book-collection';
+import { rewriteSceneWithAi } from '../../writing/ai-rewrite';
 import { applyEventToScene, createScene } from '../../writing/scene-factory';
 import { withAlineaIndent } from '../../writing/text-formatting';
+import { AiRewritePanel } from '../shared/AiRewritePanel';
 import { CheckableDropdown } from '../shared/CheckableDropdown';
 import { LabeledField } from '../shared/LabeledField';
 import { MasterDetail } from '../shared/MasterDetail';
@@ -249,6 +251,14 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
                 </Text>
               </Pressable>
             </View>
+
+            <AiRewritePanel
+              key={scene.id}
+              title="Réécriture assistée par IA — utilise la bible, les personnages et le lieu tagués ci-dessus"
+              fields={[{ key: 'content', label: 'Texte', value: scene.content }]}
+              rewrite={(_fieldKey, _content, instruction) => rewriteSceneWithAi({ book, scene, instruction })}
+              onApply={(_fieldKey, text) => setField(scene.id, 'content', text)}
+            />
           </View>
         )}
       />
