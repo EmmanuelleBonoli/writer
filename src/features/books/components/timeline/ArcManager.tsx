@@ -1,11 +1,13 @@
 import { Plus, Trash2 } from 'lucide-react-native';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Radii, Spacing } from '@/constants/theme';
+import { MinTouchTarget, Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { ArcManagerProps } from '@/types/timeline.types';
 
 import { ARC_COLORS } from '../../book-defaults';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { TagChips } from '../shared/TagChips';
 
 const UNSPECIFIED_POINT_ID = '__unspecified__';
@@ -13,6 +15,8 @@ const UNSPECIFIED_POINT_ID = '__unspecified__';
 /** Gestion de l'arc principal et des sous-arcs narratifs : titre, couleur, et jonction avec un autre arc. */
 export function ArcManager({ arcs, events, onAdd, onUpdate, onDelete }: ArcManagerProps) {
   const theme = useTheme();
+  const [arcIdToDelete, setArcIdToDelete] = useState<string | null>(null);
+  const arcToDelete = arcs.find((arc) => arc.id === arcIdToDelete);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundElement }]}>
@@ -42,8 +46,8 @@ export function ArcManager({ arcs, events, onAdd, onUpdate, onDelete }: ArcManag
                 ]}
               />
               {!arc.isMain && (
-                <Pressable onPress={() => onDelete(arc.id)} hitSlop={8}>
-                  <Trash2 size={14} color="#EF4444" />
+                <Pressable onPress={() => setArcIdToDelete(arc.id)} style={styles.deleteButton}>
+                  <Trash2 size={16} color="#EF4444" />
                 </Pressable>
               )}
             </View>
@@ -55,6 +59,7 @@ export function ArcManager({ arcs, events, onAdd, onUpdate, onDelete }: ArcManag
                     <Pressable
                       key={color}
                       onPress={() => onUpdate(arc.id, { color })}
+                      hitSlop={6}
                       style={[
                         styles.colorSwatch,
                         { backgroundColor: color },
@@ -103,6 +108,17 @@ export function ArcManager({ arcs, events, onAdd, onUpdate, onDelete }: ArcManag
         Choisissez d'abord l'arc que le sous-arc rejoint, puis, si vous le souhaitez, l'événement précis de cet arc où
         la jonction se fait.
       </Text>
+
+      <ConfirmDialog
+        visible={arcToDelete !== undefined}
+        title="Supprimer ce sous-arc ?"
+        message={`« ${arcToDelete?.title || 'Sans titre'} » sera supprimé. Ses événements rejoignent l'arc principal.`}
+        onCancel={() => setArcIdToDelete(null)}
+        onConfirm={() => {
+          if (arcIdToDelete) onDelete(arcIdToDelete);
+          setArcIdToDelete(null);
+        }}
+      />
     </View>
   );
 }
@@ -115,8 +131,10 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.two,
     marginBottom: Spacing.three,
   },
   headerLabel: {
@@ -130,12 +148,13 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
     backgroundColor: '#0D9488',
     borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.two,
+    paddingHorizontal: Spacing.three,
     paddingVertical: 6,
+    minHeight: MinTouchTarget,
   },
   addButtonLabel: {
     color: '#ffffff',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
   },
   arcRow: {
@@ -161,23 +180,30 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.two,
     paddingVertical: 6,
+    minHeight: MinTouchTarget,
+  },
+  deleteButton: {
+    width: MinTouchTarget,
+    height: MinTouchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   colorRow: {
     flexDirection: 'row',
-    gap: Spacing.two,
+    gap: 12,
   },
   colorSwatch: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   subLabel: {
-    fontSize: 11,
+    fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   hint: {
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 16,
   },
 });

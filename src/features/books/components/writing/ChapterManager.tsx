@@ -1,17 +1,21 @@
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react-native';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Radii, Spacing } from '@/constants/theme';
+import { MinTouchTarget, Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { ChapterManagerProps } from '@/types/writing.types';
 
 import { groupScenesByChapter } from '../../writing/chapter-grouping';
 import { wordCount } from '../../writing/word-count';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 /** Gestion des chapitres du livre : titre, réordonnancement, suppression — les scènes s'y rattachent depuis leur fiche. */
 export function ChapterManager({ chapters, scenes, onAdd, onUpdate, onDelete, onMove }: ChapterManagerProps) {
   const theme = useTheme();
+  const [chapterIdToDelete, setChapterIdToDelete] = useState<string | null>(null);
   const sortedChapters = [...chapters].sort((a, b) => a.order - b.order);
+  const chapterToDelete = sortedChapters.find((chapter) => chapter.id === chapterIdToDelete);
   const sceneGroups = groupScenesByChapter(scenes, chapters);
 
   const wordsInChapter = (chapterId: string): number =>
@@ -46,19 +50,34 @@ export function ChapterManager({ chapters, scenes, onAdd, onUpdate, onDelete, on
               <Text style={[styles.wordCount, { color: theme.textSecondary }]}>{wordsInChapter(chapter.id)} mots</Text>
             </View>
             <View style={styles.chapterActions}>
-              <Pressable onPress={() => onMove(chapter.id, -1)} disabled={index === 0} hitSlop={6}>
-                <ChevronUp size={16} color={index === 0 ? theme.border : theme.textSecondary} />
+              <Pressable onPress={() => onMove(chapter.id, -1)} disabled={index === 0} style={styles.actionButton}>
+                <ChevronUp size={20} color={index === 0 ? theme.border : theme.textSecondary} />
               </Pressable>
-              <Pressable onPress={() => onMove(chapter.id, 1)} disabled={index === sortedChapters.length - 1} hitSlop={6}>
-                <ChevronDown size={16} color={index === sortedChapters.length - 1 ? theme.border : theme.textSecondary} />
+              <Pressable
+                onPress={() => onMove(chapter.id, 1)}
+                disabled={index === sortedChapters.length - 1}
+                style={styles.actionButton}
+              >
+                <ChevronDown size={20} color={index === sortedChapters.length - 1 ? theme.border : theme.textSecondary} />
               </Pressable>
-              <Pressable onPress={() => onDelete(chapter.id)} hitSlop={6}>
-                <Trash2 size={14} color="#EF4444" />
+              <Pressable onPress={() => setChapterIdToDelete(chapter.id)} style={styles.actionButton}>
+                <Trash2 size={16} color="#EF4444" />
               </Pressable>
             </View>
           </View>
         ))
       )}
+
+      <ConfirmDialog
+        visible={chapterToDelete !== undefined}
+        title="Supprimer ce chapitre ?"
+        message={`« ${chapterToDelete?.title || 'Sans titre'} » sera supprimé. Ses scènes sont conservées, sans chapitre.`}
+        onCancel={() => setChapterIdToDelete(null)}
+        onConfirm={() => {
+          if (chapterIdToDelete) onDelete(chapterIdToDelete);
+          setChapterIdToDelete(null);
+        }}
+      />
     </View>
   );
 }
@@ -86,12 +105,13 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
     backgroundColor: '#0D9488',
     borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.two,
+    paddingHorizontal: Spacing.three,
     paddingVertical: 6,
+    minHeight: MinTouchTarget,
   },
   addButtonLabel: {
     color: '#ffffff',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
   },
   hint: {
@@ -116,13 +136,19 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.two,
     paddingVertical: 6,
+    minHeight: MinTouchTarget,
   },
   wordCount: {
-    fontSize: 11,
+    fontSize: 12,
   },
   chapterActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+  },
+  actionButton: {
+    width: MinTouchTarget,
+    height: MinTouchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

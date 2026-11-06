@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { BookOpen, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedStyle } from 'react-native-reanimated';
 
 import { Radii, Spacing } from '@/constants/theme';
@@ -10,6 +10,7 @@ import type { BookExpandedOverlayProps, CoverFaceProps } from '@/types/book.type
 
 import { useBooksStore } from '../../books-store';
 import { useGenreColor } from '../../genre-colors';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { ExpandingCoverOverlay } from './ExpandingCoverOverlay';
 import { GenreStripe } from './GenreStripe';
 
@@ -69,13 +70,14 @@ export function BookExpandedOverlay({ book, originRect, onClose }: BookExpandedO
 
             <Text style={[styles.pageTitle, { color: theme.text }]}>{book.title}</Text>
 
-            <View style={styles.pitchContainer}>
+            {/* Défilable : un long pitch déborderait sinon sur le bouton d'ouverture. */}
+            <ScrollView style={styles.pitchScroll} contentContainerStyle={styles.pitchContainer}>
               {book.bible.pitch ? (
                 <Text style={[styles.pitchText, { color: theme.text }]}>{book.bible.pitch}</Text>
               ) : (
                 <Text style={[styles.pitchEmpty, { color: theme.textSecondary }]}>Aucun pitch pour l'instant.</Text>
               )}
-            </View>
+            </ScrollView>
 
             <Pressable onPress={handleOpen} style={[styles.openButton, { backgroundColor: theme.text }]}>
               <BookOpen size={16} color={theme.background} />
@@ -85,24 +87,13 @@ export function BookExpandedOverlay({ book, originRect, onClose }: BookExpandedO
         }
       />
 
-      <Modal transparent visible={confirmingDelete} animationType="fade" onRequestClose={() => setConfirmingDelete(false)}>
-        <Pressable style={styles.confirmBackdrop} onPress={() => setConfirmingDelete(false)}>
-          <Pressable style={[styles.confirmCard, { backgroundColor: theme.background }]} onPress={(e) => e.stopPropagation()}>
-            <Text style={[styles.confirmTitle, { color: theme.text }]}>Supprimer ce livre ?</Text>
-            <Text style={[styles.confirmMessage, { color: theme.textSecondary }]}>
-              « {book.title} » sera définitivement supprimé.
-            </Text>
-            <View style={styles.confirmActions}>
-              <Pressable onPress={() => setConfirmingDelete(false)} style={styles.confirmCancel}>
-                <Text style={[styles.confirmCancelLabel, { color: theme.text }]}>Annuler</Text>
-              </Pressable>
-              <Pressable onPress={handleConfirmDelete} style={styles.confirmDelete}>
-                <Text style={styles.confirmDeleteLabel}>Supprimer</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <ConfirmDialog
+        visible={confirmingDelete}
+        title="Supprimer ce livre ?"
+        message={`« ${book.title} » sera définitivement supprimé.`}
+        onCancel={() => setConfirmingDelete(false)}
+        onConfirm={handleConfirmDelete}
+      />
     </>
   );
 }
@@ -124,8 +115,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.two,
     paddingRight: Spacing.five,
   },
-  pitchContainer: {
+  pitchScroll: {
     flex: 1,
+    marginBottom: Spacing.two,
+  },
+  pitchContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -159,60 +154,13 @@ const styles = StyleSheet.create({
     left: 16,
     right: 14,
     color: 'rgba(255,255,255,0.7)',
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 15,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   coverTitle: {
     color: '#ffffff',
     fontWeight: '700',
-  },
-  confirmBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.five,
-  },
-  confirmCard: {
-    width: '100%',
-    maxWidth: 320,
-    borderRadius: Radii.card,
-    padding: Spacing.four,
-  },
-  confirmTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: Spacing.two,
-  },
-  confirmMessage: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  confirmActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: Spacing.three,
-    marginTop: Spacing.four,
-  },
-  confirmCancel: {
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
-  },
-  confirmCancelLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  confirmDelete: {
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Radii.card,
-    backgroundColor: '#EF4444',
-  },
-  confirmDeleteLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#ffffff',
   },
 });

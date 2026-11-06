@@ -17,7 +17,7 @@ export function SceneLinkBadge({ linked, onPress }: SceneLinkBadgeProps) {
   return (
     <Pressable
       onPress={onPress}
-      hitSlop={8}
+      hitSlop={10}
       style={[
         styles.badge,
         linked

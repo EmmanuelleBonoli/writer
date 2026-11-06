@@ -3,10 +3,11 @@ import { File } from 'expo-file-system';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { BookOpen, ChevronDown, ChevronUp, Mic, Plus, Square, Download } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { showToast } from '@/components/toast/toast-store';
-import { Radii, Spacing } from '@/constants/theme';
+import { MinTouchTarget, Radii, Spacing } from '@/constants/theme';
+import { useIsCompact } from '@/hooks/use-is-compact';
 import { useTheme } from '@/hooks/use-theme';
 import type { Chapter, Scene, WritingSectionProps } from '@/types/writing.types';
 
@@ -37,6 +38,7 @@ function createChapter(order: number): Chapter {
 /** Rédaction du livre — scènes groupées par chapitre, reliables à des personnages, des lieux et un événement de la timeline. */
 export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingSectionProps) {
   const theme = useTheme();
+  const isCompact = useIsCompact();
   const [selectedSceneId, setSelectedSceneId] = useFocusSelection(focusSceneId, onFocusConsumed);
   const [importingSceneId, setImportingSceneId] = useState<string | null>(null);
   const [dictatingSceneId, setDictatingSceneId] = useState<string | null>(null);
@@ -221,15 +223,18 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
         </Pressable>
       </View>
 
+      {/* Défilement borné : sans ça, une longue liste de chapitres pousse celle des scènes hors de l'écran. */}
       {managingChapters && (
-        <ChapterManager
-          chapters={book.chapters}
-          scenes={book.scenes}
-          onAdd={handleAddChapter}
-          onUpdate={patchChapter}
-          onDelete={removeChapterItem}
-          onMove={moveChapter}
-        />
+        <ScrollView style={styles.managerScroll} keyboardShouldPersistTaps="handled">
+          <ChapterManager
+            chapters={book.chapters}
+            scenes={book.scenes}
+            onAdd={handleAddChapter}
+            onUpdate={patchChapter}
+            onDelete={removeChapterItem}
+            onMove={moveChapter}
+          />
+        </ScrollView>
       )}
 
       {sortedChapters.length > 0 && (
@@ -241,6 +246,7 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
             ]}
             selectedIds={[effectiveChapterFilter]}
             onToggle={setChapterFilter}
+            scrollable={isCompact}
           />
         </View>
       )}
@@ -274,11 +280,15 @@ export function WritingSection({ book, focusSceneId, onFocusConsumed }: WritingS
           const groupLength = info?.scenes.length ?? 1;
           return (
             <View style={styles.reorderButtons}>
-              <Pressable onPress={() => moveScene(scene, -1)} disabled={indexInGroup === 0} hitSlop={6}>
-                <ChevronUp size={16} color={indexInGroup === 0 ? theme.border : theme.textSecondary} />
+              <Pressable onPress={() => moveScene(scene, -1)} disabled={indexInGroup === 0} style={styles.reorderButton}>
+                <ChevronUp size={20} color={indexInGroup === 0 ? theme.border : theme.textSecondary} />
               </Pressable>
-              <Pressable onPress={() => moveScene(scene, 1)} disabled={indexInGroup === groupLength - 1} hitSlop={6}>
-                <ChevronDown size={16} color={indexInGroup === groupLength - 1 ? theme.border : theme.textSecondary} />
+              <Pressable
+                onPress={() => moveScene(scene, 1)}
+                disabled={indexInGroup === groupLength - 1}
+                style={styles.reorderButton}
+              >
+                <ChevronDown size={20} color={indexInGroup === groupLength - 1 ? theme.border : theme.textSecondary} />
               </Pressable>
             </View>
           );
@@ -392,9 +402,14 @@ const styles = StyleSheet.create({
   },
   toolbar: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: Spacing.two,
     marginBottom: Spacing.three,
+  },
+  managerScroll: {
+    flexGrow: 0,
+    maxHeight: '60%',
   },
   addButton: {
     flexDirection: 'row',
@@ -403,6 +418,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
   },
   addButtonLabel: {
     color: '#ffffff',
@@ -417,6 +433,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
   },
   chaptersToggleLabel: {
     fontSize: 12,
@@ -430,7 +447,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   cardMeta: {
-    fontSize: 11,
+    fontSize: 12,
     marginTop: 2,
   },
   cardPreview: {
@@ -439,7 +456,13 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   reorderButtons: {
-    gap: Spacing.one,
+    justifyContent: 'center',
+  },
+  reorderButton: {
+    width: MinTouchTarget,
+    height: MinTouchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tagRow: {
     flexDirection: 'row',
@@ -452,6 +475,7 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'flex-end',
     gap: Spacing.two,
     marginBottom: Spacing.four,
@@ -464,6 +488,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
   },
   importButtonLabel: {
     fontSize: 12,

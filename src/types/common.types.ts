@@ -9,6 +9,16 @@ export interface TagChipsProps {
   options: TagOption[];
   selectedIds: string[];
   onToggle: (id: string) => void;
+  /** Une seule ligne défilante plutôt qu'un retour à la ligne, pour ne pas manger la hauteur des listes affichées dessous. */
+  scrollable?: boolean;
+}
+
+export interface ConfirmDialogProps {
+  visible: boolean;
+  title: string;
+  message: string;
+  onCancel: () => void;
+  onConfirm: () => void;
 }
 
 export interface CheckableDropdownProps {

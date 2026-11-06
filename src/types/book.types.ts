@@ -122,6 +122,24 @@ export interface BookDetailMenuProps {
   searchActive: boolean;
 }
 
+export type BookBottomBarProps = Omit<BookDetailMenuProps, 'onBack'>;
+
+export interface BookBottomBarTabProps {
+  label: string;
+  icon: LucideIcon;
+  color: string;
+  active: boolean;
+  onPress: () => void;
+}
+
+export interface BookCompactHeaderProps {
+  sectionLabel: string;
+  bookTitle: string;
+  accentColor: string;
+  onBack: () => void;
+  onOpenSettings: () => void;
+}
+
 export interface AddBookCardProps {
   onOpen: (rect: BookRect) => void;
 }

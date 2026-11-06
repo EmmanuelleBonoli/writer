@@ -23,6 +23,7 @@ function GenreChip({ genre, selected, onToggle }: GenreChipProps) {
   return (
     <Pressable
       onPress={onToggle}
+      hitSlop={4}
       style={[styles.chip, { borderColor: color, backgroundColor: selected ? color : 'transparent' }]}
     >
       <Text style={[styles.chipLabel, { color: selected ? '#ffffff' : color }]}>{genre}</Text>
@@ -42,9 +43,11 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     paddingHorizontal: Spacing.three,
     paddingVertical: 6,
+    minHeight: 36,
+    justifyContent: 'center',
   },
   chipLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
 });

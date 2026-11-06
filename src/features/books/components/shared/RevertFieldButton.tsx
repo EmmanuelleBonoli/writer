@@ -1,7 +1,7 @@
 import { RotateCcw } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { Spacing } from '@/constants/theme';
+import { MinTouchTarget, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { RevertFieldButtonProps } from '@/types/common.types';
 
@@ -10,7 +10,7 @@ export function RevertFieldButton({ onPress }: RevertFieldButtonProps) {
   const theme = useTheme();
 
   return (
-    <Pressable onPress={onPress} style={styles.button} hitSlop={6}>
+    <Pressable onPress={onPress} style={styles.button}>
       <RotateCcw size={12} color={theme.textSecondary} />
       <Text style={[styles.label, { color: theme.textSecondary }]}>Revenir à la version précédente</Text>
     </Pressable>
@@ -22,12 +22,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.one,
-    marginTop: -Spacing.two,
-    marginBottom: Spacing.three,
+    minHeight: MinTouchTarget,
+    marginTop: -Spacing.three,
+    marginBottom: Spacing.one,
     alignSelf: 'flex-start',
   },
   label: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
 });

@@ -6,7 +6,7 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { showToast } from '@/components/toast/toast-store';
-import { Radii, Spacing } from '@/constants/theme';
+import { MinTouchTarget, Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { ExportableSectionId, ExportFormat, ExportSectionProps } from '@/types/export.types';
 
@@ -190,7 +190,7 @@ export function ExportSection({ book }: ExportSectionProps) {
       <View style={styles.field}>
         <View style={styles.sectionsHeader}>
           <Text style={[styles.label, { color: theme.textSecondary }]}>Sections à exporter</Text>
-          <Pressable onPress={toggleSelectAll}>
+          <Pressable onPress={toggleSelectAll} hitSlop={14}>
             <Text style={[styles.selectAllLabel, { color: ACCENT_COLOR }]}>
               {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
             </Text>
@@ -283,6 +283,8 @@ const styles = StyleSheet.create({
   formatOption: {
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
+    justifyContent: 'center',
   },
   formatLabel: {
     fontSize: 13,
@@ -308,6 +310,7 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     width: '50%',
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
   },
   checkbox: {
     width: 20,

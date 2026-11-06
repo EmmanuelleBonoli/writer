@@ -1,6 +1,6 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Radii, Spacing } from '@/constants/theme';
+import { MinTouchTarget, Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { LabeledFieldProps } from '@/types/common.types';
 
@@ -46,5 +46,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
   },
 });

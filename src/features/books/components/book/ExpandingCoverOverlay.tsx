@@ -29,7 +29,8 @@ export function ExpandingCoverOverlay({
   const theme = useTheme();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
-  const targetWidth = Math.min(280, windowWidth * 0.62);
+  // 80 % de l'écran : plus étroite, la page ne laisse pas assez de place au formulaire de création sur téléphone.
+  const targetWidth = Math.min(280, windowWidth * 0.8);
   const targetHeight = targetWidth * COVER_ASPECT_RATIO;
   const targetX = (windowWidth - targetWidth) / 2;
   const targetY = (windowHeight - targetHeight) / 2;

@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   cardMeta: {
-    fontSize: 11,
+    fontSize: 12,
     marginTop: 2,
   },
   cardPreview: {

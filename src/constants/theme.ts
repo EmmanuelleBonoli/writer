@@ -65,3 +65,5 @@ export const Radii = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+/** Taille minimale d'une zone touchable : en dessous, on rate régulièrement sa cible au doigt. */
+export const MinTouchTarget = 44;

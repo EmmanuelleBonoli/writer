@@ -2,7 +2,8 @@ import { Check, RotateCcw, Sparkles } from 'lucide-react-native';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Radii, Spacing } from '@/constants/theme';
+import { MinTouchTarget, Radii, Spacing } from '@/constants/theme';
+import { useIsCompact } from '@/hooks/use-is-compact';
 import { useTheme } from '@/hooks/use-theme';
 import type { AiRewritePanelProps } from '@/types/common.types';
 
@@ -13,6 +14,7 @@ const ACCENT_COLOR = '#0D9488';
 /** Réécriture assistée par IA (Gemini, via le Worker Cloudflare) : choix du champ (si plusieurs), instruction libre, aperçu à accepter ou ignorer. */
 export function AiRewritePanel({ title, fields, rewrite, onApply }: AiRewritePanelProps) {
   const theme = useTheme();
+  const isCompact = useIsCompact();
   const [selectedFieldKey, setSelectedFieldKey] = useState(fields[0]?.key ?? '');
   const [instruction, setInstruction] = useState('');
   const [suggestion, setSuggestion] = useState<string | null>(null);
@@ -69,13 +71,16 @@ export function AiRewritePanel({ title, fields, rewrite, onApply }: AiRewritePan
         </View>
       )}
 
-      <View style={styles.row}>
+      {/* Sur téléphone, le bouton passe sous le champ : à côté, il ne resterait qu'une moitié de largeur pour écrire l'instruction. */}
+      <View style={[styles.row, isCompact && styles.rowCompact]}>
         <TextInput
           value={instruction}
           onChangeText={setInstruction}
           placeholder='ex : "plus intense émotionnellement", ou "complète à partir du reste du profil" si le champ est vide…'
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+          multiline={isCompact}
+          textAlignVertical={isCompact ? 'top' : 'center'}
+          style={[styles.input, isCompact && styles.inputCompact, { color: theme.text, borderColor: theme.border }]}
         />
         <Pressable
           onPress={handleRewrite}
@@ -125,6 +130,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.two,
   },
+  rowCompact: {
+    flexDirection: 'column',
+  },
   input: {
     flex: 1,
     fontSize: 13,
@@ -133,13 +141,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.two,
   },
+  inputCompact: {
+    flex: 0,
+    minHeight: 72,
+  },
   rewriteButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: Spacing.one,
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
   },
   rewriteButtonLabel: {
     color: '#ffffff',
@@ -164,6 +178,7 @@ const styles = StyleSheet.create({
   },
   suggestionActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'flex-end',
     gap: Spacing.two,
   },
@@ -173,6 +188,7 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
   },
   discardButtonLabel: {
     fontSize: 12,
@@ -185,6 +201,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
   },
   applyButtonLabel: {
     color: '#ffffff',

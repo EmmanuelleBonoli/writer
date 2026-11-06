@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppLogo } from '@/components/AppLogo';
 import { showToast } from '@/components/toast/toast-store';
 import { Spacing } from '@/constants/theme';
+import { useIsCompact } from '@/hooks/use-is-compact';
 import { useTheme } from '@/hooks/use-theme';
 import type { Book, BookRect } from '@/types/book.types';
 
@@ -25,6 +26,7 @@ const PROJECT_JSON_MIME_TYPE = 'application/json';
 export function ShelfScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const isCompact = useIsCompact();
   const books = useBooksStore((state) => state.books);
   const importBook = useBooksStore((state) => state.importBook);
   const [openBook, setOpenBook] = useState<{ book: Book; rect: BookRect } | null>(null);
@@ -53,10 +55,10 @@ export function ShelfScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
+      <View style={[styles.header, isCompact && styles.headerCompact]}>
         <AppLogo />
         <View style={styles.headerText}>
-          <Text style={[styles.title, { color: theme.text }]}>L'étagère</Text>
+          <Text style={[styles.title, isCompact && styles.titleCompact, { color: theme.text }]}>L'étagère</Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             Chaque roman est un projet indépendant.
           </Text>
@@ -72,7 +74,7 @@ export function ShelfScreen() {
           <Settings size={22} color={theme.textSecondary} />
         </Pressable>
       </View>
-      <View style={styles.listContainer}>
+      <View style={[styles.listContainer, isCompact && styles.listContainerCompact]}>
         <BooksList books={books} onOpenBook={(book, rect) => setOpenBook({ book, rect })} />
       </View>
 
@@ -101,6 +103,12 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.four,
     paddingBottom: Spacing.five,
   },
+  headerCompact: {
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.four,
+  },
   headerText: {
     flex: 1,
     gap: Spacing.half,
@@ -112,12 +120,18 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: '700',
   },
+  titleCompact: {
+    fontSize: 24,
+  },
   subtitle: {
     fontSize: 14,
   },
   listContainer: {
     flex: 1,
     paddingHorizontal: Spacing.four,
+  },
+  listContainerCompact: {
+    paddingHorizontal: Spacing.three,
   },
   footer: {
     alignItems: 'center',

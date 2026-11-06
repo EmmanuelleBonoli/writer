@@ -1,8 +1,8 @@
 import { ChevronDown, ChevronUp, GitBranch, List, PenLine, Plus } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Radii, Spacing } from '@/constants/theme';
+import { MinTouchTarget, Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Arc, TimelineEvent, TimelineSectionProps } from '@/types/timeline.types';
 import type { Scene } from '@/types/writing.types';
@@ -159,14 +159,17 @@ export function TimelineSection({ book, onOpenScene, focusEventId, onFocusConsum
         </View>
       </View>
 
+      {/* Défilement borné : sans ça, les fiches d'arcs poussent les événements hors de l'écran. */}
       {managingArcs && (
-        <ArcManager
-          arcs={arcs}
-          events={sortedEvents}
-          onAdd={handleAddArc}
-          onUpdate={handleUpdateArc}
-          onDelete={handleDeleteArc}
-        />
+        <ScrollView style={styles.managerScroll} keyboardShouldPersistTaps="handled">
+          <ArcManager
+            arcs={arcs}
+            events={sortedEvents}
+            onAdd={handleAddArc}
+            onUpdate={handleUpdateArc}
+            onDelete={handleDeleteArc}
+          />
+        </ScrollView>
       )}
 
       {!selectedEventId && view === 'graph' ? (
@@ -204,11 +207,15 @@ export function TimelineSection({ book, onOpenScene, focusEventId, onFocusConsum
           )}
           renderCardAccessory={(event, index) => (
             <View style={styles.reorderButtons}>
-              <Pressable onPress={() => moveEvent(event.id, -1)} disabled={index === 0} hitSlop={6}>
-                <ChevronUp size={16} color={index === 0 ? theme.border : theme.textSecondary} />
+              <Pressable onPress={() => moveEvent(event.id, -1)} disabled={index === 0} style={styles.reorderButton}>
+                <ChevronUp size={20} color={index === 0 ? theme.border : theme.textSecondary} />
               </Pressable>
-              <Pressable onPress={() => moveEvent(event.id, 1)} disabled={index === sortedEvents.length - 1} hitSlop={6}>
-                <ChevronDown size={16} color={index === sortedEvents.length - 1 ? theme.border : theme.textSecondary} />
+              <Pressable
+                onPress={() => moveEvent(event.id, 1)}
+                disabled={index === sortedEvents.length - 1}
+                style={styles.reorderButton}
+              >
+                <ChevronDown size={20} color={index === sortedEvents.length - 1 ? theme.border : theme.textSecondary} />
               </Pressable>
             </View>
           )}
@@ -287,6 +294,10 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     marginBottom: Spacing.three,
   },
+  managerScroll: {
+    flexGrow: 0,
+    maxHeight: '60%',
+  },
   arcsToggle: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -295,6 +306,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
   },
   arcsToggleLabel: {
     fontSize: 12,
@@ -307,6 +319,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
   },
   addButtonLabel: {
     color: '#ffffff',
@@ -323,6 +336,8 @@ const styles = StyleSheet.create({
   viewSwitchOption: {
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
+    justifyContent: 'center',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -341,7 +356,13 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   reorderButtons: {
-    gap: Spacing.one,
+    justifyContent: 'center',
+  },
+  reorderButton: {
+    width: MinTouchTarget,
+    height: MinTouchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sceneLinkRow: {
     flexDirection: 'row',
@@ -351,6 +372,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
     marginBottom: Spacing.four,
   },
   sceneLinkLabel: {

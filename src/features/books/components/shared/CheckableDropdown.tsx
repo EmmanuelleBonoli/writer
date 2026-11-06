@@ -2,7 +2,7 @@ import { Check, ChevronDown } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Radii, Spacing } from '@/constants/theme';
+import { MinTouchTarget, Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { CheckableDropdownProps } from '@/types/common.types';
 
@@ -87,6 +87,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
   },
   triggerText: {
     flex: 1,
@@ -120,6 +121,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
   },
   checkbox: {
     width: 18,
@@ -140,7 +142,9 @@ const styles = StyleSheet.create({
     marginTop: Spacing.three,
     borderRadius: Radii.card,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   closeLabel: {
     fontSize: 13,

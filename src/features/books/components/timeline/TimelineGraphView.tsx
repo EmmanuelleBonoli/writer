@@ -3,7 +3,8 @@ import { Fragment, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Line, Path, Svg, Text as SvgText } from 'react-native-svg';
 
-import { Radii, Spacing } from '@/constants/theme';
+import { MinTouchTarget, Radii, Spacing } from '@/constants/theme';
+import { useIsCompact } from '@/hooks/use-is-compact';
 import { useTheme } from '@/hooks/use-theme';
 import type { TimelineGraphViewProps, TimelineOrientation } from '@/types/timeline.types';
 
@@ -18,7 +19,9 @@ import { SceneLinkBadge } from './SceneLinkBadge';
  */
 export function TimelineGraphView({ events, arcs, scenes, onSelectEvent, onOpenEventScene }: TimelineGraphViewProps) {
   const theme = useTheme();
-  const [orientation, setOrientation] = useState<TimelineOrientation>('horizontal');
+  const isCompact = useIsCompact();
+  // Un écran de téléphone se parcourt mieux de haut en bas que par un long défilement latéral.
+  const [orientation, setOrientation] = useState<TimelineOrientation>(isCompact ? 'vertical' : 'horizontal');
   const isHorizontal = orientation === 'horizontal';
   const { width, height, nodes, laneGuides, arcLines, linkPaths } = computeTimelineLayout(events, arcs, orientation);
 
@@ -120,6 +123,8 @@ const styles = StyleSheet.create({
   orientationOption: {
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
+    justifyContent: 'center',
   },
   verticalScrollContent: {
     flexGrow: 1,

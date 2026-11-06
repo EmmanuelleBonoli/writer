@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
 import { PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Radii, Spacing } from '@/constants/theme';
+import { useIsCompact } from '@/hooks/use-is-compact';
+import { useKeyboardVisible } from '@/hooks/use-keyboard-visible';
 import { useTheme } from '@/hooks/use-theme';
 import type { BookDetailScreenProps, BookSectionId } from '@/types/book.types';
 
@@ -12,7 +14,9 @@ import { BOOK_SECTIONS } from '../book-sections';
 import { useBooksStore } from '../books-store';
 import { sanitizeBook } from '../sanitize-book';
 import { BibleSection } from '../components/bible/BibleSection';
-import { BookDetailMenu, RAIL_BACKGROUND } from '../components/book/BookDetailMenu';
+import { BookBottomBar } from '../components/book/BookBottomBar';
+import { BookCompactHeader } from '../components/book/BookCompactHeader';
+import { BookDetailMenu, RAIL_BACKGROUND, SEARCH_COLOR } from '../components/book/BookDetailMenu';
 import { CharactersSection } from '../components/characters/CharactersSection';
 import { ExportSection } from '../components/export/ExportSection';
 import { NotesSection } from '../components/notes/NotesSection';
@@ -21,11 +25,16 @@ import { SearchOverlay } from '../components/search/SearchOverlay';
 import { TimelineSection } from '../components/timeline/TimelineSection';
 import { WritingSection } from '../components/writing/WritingSection';
 
+// Sur téléphone, c'est la barre du bas qui gère elle-même l'encoche inférieure, pour que sa couleur aille jusqu'au bord.
+const COMPACT_SAFE_EDGES = ['top', 'left', 'right'] as const;
+
 /** Écran de détail d'un livre : rail de navigation vers ses différents éléments (Bible, Personnages, Lieux...). */
 export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
   const theme = useTheme();
   const router = useRouter();
-  const book = useBooksStore((state) => state.books.find((b) => b.id === bookId));
+  const isCompact = useIsCompact();
+  const keyboardVisible = useKeyboardVisible();
+  const book =useBooksStore((state) => state.books.find((b) => b.id === bookId));
   const updateBook = useBooksStore((state) => state.updateBook);
   const [activeSection, setActiveSection] = useState<BookSectionId>('bible');
   const [menuOpen, setMenuOpen] = useState(true);
@@ -95,9 +104,21 @@ export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    // À la racine de l'écran : le calcul du décalage se base sur la position dans le parent, un en-tête au-dessus le fausserait.
+    <KeyboardAvoidingView behavior="padding" style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={styles.container} edges={isCompact ? COMPACT_SAFE_EDGES : undefined}>
+      {isCompact && (
+        <BookCompactHeader
+          sectionLabel={searchOpen ? 'Rechercher' : section.label}
+          bookTitle={book.title}
+          accentColor={searchOpen ? SEARCH_COLOR : section.color}
+          onBack={() => router.replace('/')}
+          onOpenSettings={() => router.push('/settings')}
+        />
+      )}
+
       <View style={styles.body}>
-        {menuOpen && (
+        {!isCompact && menuOpen && (
           <BookDetailMenu
             activeSection={activeSection}
             onSelectSection={handleSelectSection}
@@ -107,7 +128,7 @@ export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
           />
         )}
 
-        <View style={styles.content}>
+        <View style={[styles.content, isCompact && styles.contentCompact]}>
           {searchOpen ? (
             <SearchOverlay
               book={book}
@@ -122,11 +143,15 @@ export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
             />
           ) : (
             <>
-              <View style={[styles.sectionAccent, { backgroundColor: section.color }]} />
-              <Text style={[styles.genre, { color: theme.textSecondary }]}>{book.genre.join(' · ')}</Text>
-              <Text style={[styles.title, { color: theme.text }]}>{book.title}</Text>
+              {!isCompact && (
+                <>
+                  <View style={[styles.sectionAccent, { backgroundColor: section.color }]} />
+                  <Text style={[styles.genre, { color: theme.textSecondary }]}>{book.genre.join(' · ')}</Text>
+                  <Text style={[styles.title, { color: theme.text }]}>{book.title}</Text>
 
-              <Text style={[styles.sectionLabel, { color: theme.text }]}>{section.label}</Text>
+                  <Text style={[styles.sectionLabel, { color: theme.text }]}>{section.label}</Text>
+                </>
+              )}
 
               {activeSection === 'bible' && <BibleSection book={book} />}
               {activeSection === 'characters' && (
@@ -158,15 +183,29 @@ export function BookDetailScreen({ bookId }: BookDetailScreenProps) {
           )}
         </View>
 
-        <Pressable onPress={() => setMenuOpen((open) => !open)} style={styles.menuToggle} hitSlop={8}>
-          {menuOpen ? <PanelLeftClose size={18} color="#ffffff" /> : <PanelLeftOpen size={18} color="#ffffff" />}
-        </Pressable>
+        {!isCompact && (
+          <>
+            <Pressable onPress={() => setMenuOpen((open) => !open)} style={styles.menuToggle} hitSlop={8}>
+              {menuOpen ? <PanelLeftClose size={18} color="#ffffff" /> : <PanelLeftOpen size={18} color="#ffffff" />}
+            </Pressable>
 
-        <Pressable onPress={() => router.push('/settings')} style={styles.settingsButton} hitSlop={8}>
-          <Settings size={18} color="#ffffff" />
-        </Pressable>
+            <Pressable onPress={() => router.push('/settings')} style={styles.settingsButton} hitSlop={8}>
+              <Settings size={18} color="#ffffff" />
+            </Pressable>
+          </>
+        )}
       </View>
+
+      {isCompact && !keyboardVisible && (
+        <BookBottomBar
+          activeSection={activeSection}
+          onSelectSection={handleSelectSection}
+          onSearch={() => setSearchOpen(true)}
+          searchActive={searchOpen}
+        />
+      )}
     </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -205,6 +244,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingBottom: Spacing.four,
     paddingTop: Spacing.six,
+  },
+  contentCompact: {
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.three,
+    paddingBottom: 0,
   },
   sectionAccent: {
     width: 48,

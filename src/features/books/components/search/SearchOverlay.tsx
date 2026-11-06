@@ -2,7 +2,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, Repeat, Search } from 'lucide-react-
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Radii, Spacing } from '@/constants/theme';
+import { MinTouchTarget, Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { SearchOverlayProps, SearchResult, SearchResultType } from '@/types/search.types';
 
@@ -170,7 +170,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.one,
-    marginBottom: Spacing.three,
+    minHeight: MinTouchTarget,
+    marginBottom: Spacing.one,
     alignSelf: 'flex-start',
   },
   backLinkLabel: {
@@ -199,6 +200,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.one,
+    minHeight: MinTouchTarget,
     alignSelf: 'flex-start',
   },
   replaceToggleLabel: {
@@ -208,7 +210,9 @@ const styles = StyleSheet.create({
   replaceButton: {
     borderRadius: Radii.card,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
     alignItems: 'center',
+    justifyContent: 'center',
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.three,
   },
@@ -231,7 +235,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.four,
   },
   groupLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,

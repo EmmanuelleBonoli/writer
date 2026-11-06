@@ -2,9 +2,12 @@ import { ArrowLeft, Plus, Trash2 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Radii, Spacing } from '@/constants/theme';
+import { MinTouchTarget, Radii, Spacing } from '@/constants/theme';
+import { useIsCompact } from '@/hooks/use-is-compact';
 import { useTheme } from '@/hooks/use-theme';
 import type { MasterDetailProps } from '@/types/common.types';
+
+import { ConfirmDialog } from './ConfirmDialog';
 
 /**
  * Galerie de fiches + vue détail plein écran. Mutualisé entre Personnages et Lieux, dont la structure
@@ -26,7 +29,9 @@ export function MasterDetail<T extends { id: string }>({
   hideAddButton,
 }: MasterDetailProps<T>) {
   const theme = useTheme();
+  const isCompact = useIsCompact();
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const isControlled = controlledSelectedId !== undefined;
   const selectedId = isControlled ? controlledSelectedId : internalSelectedId;
 
@@ -51,21 +56,26 @@ export function MasterDetail<T extends { id: string }>({
           <Text style={[styles.backLinkLabel, { color: theme.textSecondary }]}>Retour à la liste</Text>
         </Pressable>
 
-        <View style={[styles.detailCard, { backgroundColor: theme.backgroundElement }]}>
+        <View style={[styles.detailCard, isCompact && styles.detailCardCompact, { backgroundColor: theme.backgroundElement }]}>
           {renderDetail(current)}
 
-          <Pressable
-            onPress={() => {
-              onDelete(current.id);
-              setSelectedId(null);
-            }}
-            style={styles.deleteLink}
-            hitSlop={8}
-          >
+          <Pressable onPress={() => setConfirmingDelete(true)} style={styles.deleteLink} hitSlop={8}>
             <Trash2 size={12} color="#EF4444" />
             <Text style={styles.deleteLinkLabel}>Supprimer cette fiche</Text>
           </Pressable>
         </View>
+
+        <ConfirmDialog
+          visible={confirmingDelete}
+          title="Supprimer cette fiche ?"
+          message="Son contenu sera définitivement supprimé."
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={() => {
+            setConfirmingDelete(false);
+            onDelete(current.id);
+            setSelectedId(null);
+          }}
+        />
       </ScrollView>
     );
   }
@@ -122,6 +132,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    minHeight: MinTouchTarget,
     marginBottom: Spacing.four,
   },
   addButtonLabel: {
@@ -151,8 +162,10 @@ const styles = StyleSheet.create({
   backLink: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
     gap: Spacing.one,
-    marginBottom: Spacing.four,
+    minHeight: MinTouchTarget,
+    marginBottom: Spacing.two,
   },
   backLinkLabel: {
     fontSize: 12,
@@ -162,11 +175,17 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     padding: Spacing.four,
   },
+  detailCardCompact: {
+    padding: Spacing.three,
+  },
   deleteLink: {
     flexDirection: 'row',
     alignItems: 'center',
+    // Limité à son contenu : sur toute la largeur, un doigt qui défile pourrait supprimer la fiche sans le vouloir.
+    alignSelf: 'flex-start',
     gap: Spacing.one,
-    marginTop: Spacing.four,
+    minHeight: MinTouchTarget,
+    marginTop: Spacing.three,
   },
   deleteLinkLabel: {
     color: '#EF4444',

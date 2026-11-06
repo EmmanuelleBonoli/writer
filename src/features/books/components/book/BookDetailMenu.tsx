@@ -8,9 +8,9 @@ import { BOOK_SECTIONS } from '../../book-sections';
 
 // Même identité de marque fixe que AppLogo : le rail est un élément de "chrome", pas une surface themée.
 export const RAIL_BACKGROUND = '#2B2440';
-const ICON_INACTIVE = 'rgba(255,255,255,0.7)';
-const ICON_ACTIVE = '#ffffff';
-const SEARCH_COLOR = '#22D3EE';
+export const ICON_INACTIVE = 'rgba(255,255,255,0.7)';
+export const ICON_ACTIVE = '#ffffff';
+export const SEARCH_COLOR = '#22D3EE';
 
 /** Rail vertical d'icônes : les sections du livre (Bible, Personnages, Lieux, Timeline, Rédaction), retour à l'étagère en bas. */
 export function BookDetailMenu({ activeSection, onSelectSection, onBack, onSearch, searchActive }: BookDetailMenuProps) {
